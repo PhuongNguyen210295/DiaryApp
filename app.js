@@ -55,6 +55,39 @@ const localStamp = (d = new Date()) =>
 const dayKey = stamp => stamp.slice(0, 10);
 const parseStamp = s => new Date(s.length === 16 ? s + ':00' : s);
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+// Only real embedded images are allowed as photos (never links or anything that could run code).
+const safePhoto = src => typeof src === 'string' && /^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(src);
+const STAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+// Clean one entry from storage or a backup file. Returns null if it can't be used.
+function normalizeEntry(x) {
+  if (!x || typeof x !== 'object') return null;
+  const id = typeof x.id === 'string' || typeof x.id === 'number' ? String(x.id) : '';
+  const date = typeof x.date === 'string' && STAMP_RE.test(x.date) && !isNaN(new Date(x.date.slice(0, 16) + ':00')) ? x.date.slice(0, 16) : '';
+  if (!id || !date) return null;
+  const text = v => (v === null || v === undefined ? '' : String(v));
+  const title = text(x.title), body = text(x.body);
+  return {
+    ...x, id, date, title, body,
+    mood: typeof x.mood === 'string' && MOODS.some(m => m.id === x.mood) ? x.mood : null,
+    photos: Array.isArray(x.photos) ? x.photos.filter(safePhoto) : [],
+    tags: extractTags(title + ' ' + body),
+  };
+}
+
+// Clean imported check-ins: real dates, known questions, simple answers only.
+function normalizeCheckins(c) {
+  const out = {};
+  if (!c || typeof c !== 'object') return out;
+  for (const [k, v] of Object.entries(c)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !v || typeof v !== 'object' || !CheckIn.byId[v.q]) continue;
+    const q = CheckIn.byId[v.q];
+    const ok = v.a === null || (q.type === 'scale' ? [1, 2, 3, 4, 5].includes(v.a) : q.options.includes(v.a));
+    if (ok) out[k] = { q: v.q, a: v.a, t: Number(v.t) || 0 };
+  }
+  return out;
+}
+
 const extractTags = text => [...new Set((text.match(/#[\p{L}\p{N}_-]+/gu) || []).map(t => t.slice(1).toLowerCase()))];
 
 const settings = {
@@ -191,7 +224,7 @@ function filtered() {
     .filter(e => !moodFilter || e.mood === moodFilter)
     .filter(e => {
       if (!q) return true;
-      const mood = e.mood ? moodById[e.mood].label.toLowerCase() : '';
+      const mood = moodById[e.mood] ? moodById[e.mood].label.toLowerCase() : '';
       if (q.startsWith('#')) return (e.tags || []).some(t => t.startsWith(q.slice(1)));
       return (e.title + ' ' + e.body + ' ' + mood).toLowerCase().includes(q);
     })
@@ -244,9 +277,10 @@ function renderLevelCard() {
 
 function entryCard(e) {
   const d = parseStamp(e.date);
-  const snippet = e.body.replace(/\s+/g, ' ').slice(0, 140);
-  const mood = e.mood ? moodById[e.mood].emoji : '';
-  const thumb = e.photos && e.photos.length ? `<img class="thumb" src="${e.photos[0]}" alt="" loading="lazy">` : '';
+  const snippet = String(e.body ?? '').replace(/\s+/g, ' ').slice(0, 140);
+  const mood = moodById[e.mood] ? moodById[e.mood].emoji : '';
+  const photo = (e.photos || []).find(safePhoto);
+  const thumb = photo ? `<img class="thumb" src="${esc(photo)}" alt="" loading="lazy">` : '';
   return `
       <a class="entry" href="#/entry/${encodeURIComponent(e.id)}" style="--mood:${moodColor(e.mood)}">
         <div class="entry-date">
@@ -401,7 +435,7 @@ function renderMoods() {
 
 function renderPhotos() {
   $('#ed-photos').innerHTML = current.photos.map((src, i) => `
-    <div class="photo"><img src="${src}" alt="Photo ${i + 1}">
+    <div class="photo"><img src="${safePhoto(src) ? esc(src) : ''}" alt="Photo ${i + 1}">
       <button type="button" class="photo-x" data-i="${i}" aria-label="Remove photo">×</button></div>`).join('');
 }
 
@@ -1006,13 +1040,15 @@ $('#import-input').addEventListener('change', async e => {
     const data = JSON.parse(await file.text());
     const list = Array.isArray(data) ? data : data.entries;
     if (!Array.isArray(list)) throw new Error('format');
-    const valid = list.filter(x => x && typeof x.id === 'string' && typeof x.date === 'string')
-      .map(x => ({ title: '', body: '', mood: null, photos: [], ...x, tags: extractTags((x.title || '') + ' ' + (x.body || '')) }));
-    const ok = await dialog({ title: `Import ${valid.length} entries?`, text: 'Entries with the same ID will be replaced. Others are kept.', okLabel: 'Import' });
+    const valid = list.map(normalizeEntry).filter(Boolean);
+    const skipped = list.length - valid.length;
+    if (!valid.length) throw new Error('nothing usable');
+    const ok = await dialog({ title: `Import ${valid.length} entries?`,
+      text: 'Entries with the same ID will be replaced. Others are kept.' + (skipped ? ` ${skipped} damaged entr${skipped === 1 ? 'y' : 'ies'} will be skipped.` : ''), okLabel: 'Import' });
     if (!ok) return;
     await DB.bulkPut(valid);
-    entries = await DB.all();
-    if (data && data.checkins && typeof data.checkins === 'object') saveCheckins({ ...data.checkins, ...getCheckins() });
+    entries = (await DB.all()).map(normalizeEntry).filter(Boolean);
+    if (data && data.checkins) saveCheckins({ ...normalizeCheckins(data.checkins), ...getCheckins() });
     settings.set('seenLevel', Levels.levelInfo(xpNow()).level);
     toast(`Imported ${valid.length} entries`);
   } catch {
@@ -1069,7 +1105,9 @@ $('#btn-install').addEventListener('click', async () => {
 (async function boot() {
   applyTheme();
   try {
-    entries = await DB.all();
+    // clean anything damaged that was saved earlier, so one bad entry can't blank the diary
+    entries = (await DB.all()).map(normalizeEntry).filter(Boolean);
+    saveCheckins(normalizeCheckins(getCheckins()));
   } catch (err) {
     document.body.innerHTML = '<p style="padding:24px">Could not open storage. If you are in private browsing, open the diary in a normal tab.</p>';
     return;
