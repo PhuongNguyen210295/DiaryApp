@@ -64,6 +64,7 @@
         <input id="search-input" type="search" placeholder="Search entries, #tags, moods…" aria-label="Search entries">
       </div>
 
+      <section id="checkin" class="checkin" aria-label="Daily health check-in"></section>
       <section id="map-panel" class="map-panel" aria-label="Star map" hidden>
         <div class="mp-head">
           <button id="mp-toggle" class="mp-toggle" type="button" aria-expanded="true" aria-controls="mp-body">
@@ -163,6 +164,8 @@
         <span class="icon-btn-spacer"></span>
       </header>
       <div id="progress-hero" class="hero"></div>
+      <h3 class="month">Health check-ins</h3>
+      <div id="checkin-history" class="card ci-history"></div>
       <h3 class="month">Level milestones</h3>
       <div id="milestones" class="badges"></div>
       <h3 class="month">Badges</h3>
@@ -270,6 +273,7 @@
 
   <script src="db.js"></script>
   <script src="levels.js"></script>
+  <script src="checkin.js"></script>
   <script src="journeymap.js"></script>
   <script src="app.js"></script>
 </body>

@@ -1,9 +1,9 @@
 // Offline support.
 // Online: always load fresh files from the network (so every file comes from the same release),
 // and keep a copy. Offline: fall back to the saved copy.
-const CACHE = 'diary-v12';
+const CACHE = 'diary-v13';
 const ASSETS = [
-  './', 'index.html', 'styles.css', 'app.js', 'db.js', 'levels.js', 'journeymap.js', 'manifest.webmanifest',
+  './', 'index.html', 'styles.css', 'app.js', 'db.js', 'levels.js', 'checkin.js', 'journeymap.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
   'fonts/fonts.css',
   'fonts/be-vietnam-pro-400-vietnamese.woff2',

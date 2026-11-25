@@ -3,7 +3,7 @@
 // Self-repair: if the page layout and this script come from different releases
 // (a stale saved copy), clear the saved copies and reload once.
 (function checkSameRelease() {
-  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'clock', 'milestones', 'lu-milestone', 'map-panel', 'mp-map', 'map-unpin', 'cal-collapse', 'cal-strip'];
+  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'clock', 'milestones', 'lu-milestone', 'map-panel', 'mp-map', 'map-unpin', 'cal-collapse', 'cal-strip', 'checkin'];
   if (required.every(id => document.getElementById(id))) {
     try { sessionStorage.removeItem('diary.repairing'); } catch { /* ignore */ }
     return;
@@ -216,7 +216,7 @@ $('#mood-filter').addEventListener('click', e => {
 });
 
 function renderLevelCard() {
-  const info = Levels.levelInfo(Levels.totalXP(entries));
+  const info = Levels.levelInfo(xpNow());
   $('#level-card').innerHTML = `
     <div class="lc-badge">${info.icon}<span>${info.level}</span></div>
     <div class="lc-main">
@@ -299,6 +299,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { sh
 function render() {
   showToday();
   applyMapMode();
+  renderCheckin();
   renderLevelCard();
   renderStats();
   renderMoodFilter();
@@ -349,12 +350,20 @@ $('#entries').addEventListener('click', e => {
 let saveTimer = null;
 let xpAtOpen = 0;
 
+let pendingPrefill = null;   // { title, body } to start a new entry with (from the daily check-in)
+
 function openEditor(entry, onDay) {
-  xpAtOpen = Levels.totalXP(entries);
+  xpAtOpen = xpNow();
   let date = localStamp();
   if (onDay && /^\d{4}-\d{2}-\d{2}$/.test(onDay)) date = onDay + date.slice(10);
   current = entry ? { ...entry, photos: [...(entry.photos || [])] }
     : { id: uid(), date, title: '', body: '', mood: null, photos: [], tags: [], isNew: true };
+  if (!entry && pendingPrefill) {
+    // remember the starting text so an untouched entry isn't saved
+    current.title = current._pt = pendingPrefill.title;
+    current.body = current._pb = pendingPrefill.body;
+  }
+  pendingPrefill = null;
   $('#ed-date').value = current.date;
   $('#ed-title').value = current.title;
   $('#ed-body').value = current.body;
@@ -392,7 +401,7 @@ function autoGrow() {
   ta.style.height = Math.max(ta.scrollHeight, 240) + 'px';
 }
 
-const isEmpty = e => !e.title.trim() && !e.body.trim() && !e.photos.length && !e.mood;
+const isEmpty = e => (!e.title.trim() || e.title === e._pt) && (!e.body.trim() || e.body === e._pb) && !e.photos.length && !e.mood;
 
 function scheduleSave() {
   $('#save-state').textContent = 'Editing…';
@@ -413,7 +422,7 @@ function flushSave() {
 
 async function saveEntry(editing) {
   if (!editing || isEmpty(editing)) return;
-  const { isNew, ...data } = editing;
+  const { isNew, _pt, _pb, ...data } = editing;
   editing.isNew = false;
   data.tags = extractTags(data.title + ' ' + data.body);
   data.updatedAt = Date.now();
@@ -431,14 +440,14 @@ async function leaveEditor() {
   if (!current) return;
   await flushSave();
   current = null;
-  const gained = Levels.totalXP(entries) - xpAtOpen;
+  const gained = xpNow() - xpAtOpen;
   if (gained > 0) toast(`+${gained} XP ✨`);
   checkLevelUp();
 }
 
 /* ---------- level up ---------- */
 function checkLevelUp() {
-  const info = Levels.levelInfo(Levels.totalXP(entries));
+  const info = Levels.levelInfo(xpNow());
   const seen = settings.get('seenLevel', null);
   settings.set('seenLevel', info.level);
   if (seen === null || info.level <= seen) return;   // first launch, or no change
@@ -511,7 +520,7 @@ function renderCalendar() {
   $('#cal-month').textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   $('#cal-map').innerHTML = JourneyMap.render({
     month: calMonth, byDay, today: today(), selected: calDay,
-    level: Levels.levelInfo(Levels.totalXP(entries)),
+    level: Levels.levelInfo(xpNow()),
     moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️',
     monthLabel: first.toLocaleDateString(undefined, { month: 'long' }),
     idPrefix: 'full-',
@@ -632,7 +641,7 @@ function renderMapPanel() {
   if (!open) { $('#mp-map').innerHTML = ''; return; }
   $('#mp-map').innerHTML = JourneyMap.render({
     month: today().slice(0, 7), byDay: entriesByDay(), today: today(), selected: null,
-    level: Levels.levelInfo(Levels.totalXP(entries)),
+    level: Levels.levelInfo(xpNow()),
     moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️',
     monthLabel: now.toLocaleDateString(undefined, { month: 'long' }),
     idPrefix: 'mini-',
@@ -679,9 +688,117 @@ $('#mp-map').addEventListener('keydown', e => {
   if (stop && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); stop.click(); }
 });
 
+/* ---------- daily health check-in ---------- */
+// Answers live on this device only: { 'YYYY-MM-DD': { q: questionId, a: answer | null (skipped), t: time } }
+const CHECKIN_XP = 5;
+function getCheckins() { return settings.get('checkins', {}) || {}; }
+function saveCheckins(c) { settings.set('checkins', c); }
+const answeredCount = () => Object.values(getCheckins()).filter(c => c && c.a !== null && c.a !== undefined).length;
+function xpNow() { return Levels.totalXP(entries) + CHECKIN_XP * answeredCount(); }
+
+let checkinEditing = false;
+function renderCheckin() {
+  const el = $('#checkin');
+  const day = today();
+  const rec = getCheckins()[day];
+  // keep the question asked when you answered, even if the question bank changes later
+  const q = (rec && CheckIn.byId[rec.q]) || CheckIn.questionFor(day);
+  const streak = CheckIn.streak(getCheckins(), day);
+  const head = `<div class="ci-head"><span class="ci-icon" aria-hidden="true">${q.icon}</span>
+      <span class="ci-kicker">Daily check-in</span>
+      ${streak > 1 ? `<span class="ci-streak" title="Days in a row">${streak} days 🔥</span>` : ''}</div>`;
+
+  if (!rec || checkinEditing) {
+    let answers;
+    if (q.type === 'scale') {
+      answers = `<div class="ci-scale">${q.faces.map((f, i) => `
+        <button type="button" class="ci-opt ci-face ${rec && rec.a === i + 1 ? 'on' : ''}" data-a="${i + 1}" aria-label="${i + 1} of 5">
+          <span>${f}</span><small>${i + 1}</small></button>`).join('')}</div>
+        <div class="ci-ends"><span>${esc(q.low)}</span><span>${esc(q.high)}</span></div>`;
+    } else {
+      answers = `<div class="ci-choices">${q.options.map(o => `
+        <button type="button" class="ci-opt ${rec && rec.a === o ? 'on' : ''}" data-a="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+    }
+    el.className = 'checkin ask';
+    el.innerHTML = `${head}<p class="ci-q">${esc(q.q)}</p>${answers}
+      <div class="ci-foot">${rec ? '<button type="button" class="ci-link" data-act="cancel">Cancel</button>' : '<button type="button" class="ci-link" data-act="skip">Skip today</button>'}
+      <span class="muted small">+${CHECKIN_XP} XP</span></div>`;
+    return;
+  }
+
+  if (rec.a === null || rec.a === undefined) {
+    el.className = 'checkin done skipped';
+    el.innerHTML = `<div class="ci-row"><span class="ci-icon" aria-hidden="true">${q.icon}</span>
+      <span class="muted small">You skipped today's check-in.</span>
+      <button type="button" class="ci-link" data-act="change">Answer now</button></div>`;
+    return;
+  }
+
+  const concern = CheckIn.isConcern(q, rec.a);
+  el.className = 'checkin done';
+  el.innerHTML = `${head}
+    <p class="ci-done-q">${esc(q.q)}</p>
+    <p class="ci-answer"><span class="ci-check" aria-hidden="true">✓</span> ${esc(CheckIn.answerLabel(q, rec.a))}</p>
+    ${concern ? `<p class="ci-care">Sorry today is tough. Be gentle with yourself, and if this keeps up, consider talking to someone you trust or a health professional.</p>` : ''}
+    <div class="ci-foot"><button type="button" class="ci-link" data-act="write">Write about it</button>
+      <button type="button" class="ci-link" data-act="change">Change answer</button></div>`;
+}
+
+function answerCheckin(a) {
+  const day = today();
+  const all = getCheckins();
+  const before = xpNow();
+  const q = (all[day] && CheckIn.byId[all[day].q]) || CheckIn.questionFor(day);
+  all[day] = { q: q.id, a, t: Date.now() };
+  saveCheckins(all);
+  checkinEditing = false;
+  renderCheckin();
+  renderLevelCard();
+  const gained = xpNow() - before;
+  if (gained > 0) toast(`Checked in. +${gained} XP ✨`);
+  checkLevelUp();
+}
+
+$('#checkin').addEventListener('click', e => {
+  const opt = e.target.closest('.ci-opt');
+  if (opt) {
+    const q = CheckIn.questionFor(today());
+    const rec = getCheckins()[today()];
+    const type = ((rec && CheckIn.byId[rec.q]) || q).type;
+    answerCheckin(type === 'scale' ? Number(opt.dataset.a) : opt.dataset.a);
+    return;
+  }
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'skip') answerCheckin(null);
+  if (act === 'change') { checkinEditing = true; renderCheckin(); }
+  if (act === 'cancel') { checkinEditing = false; renderCheckin(); }
+  if (act === 'write') {
+    const rec = getCheckins()[today()];
+    const q = CheckIn.byId[rec.q];
+    pendingPrefill = { title: 'Health check-in', body: `${q.q}\n${CheckIn.answerLabel(q, rec.a)}\n\n` };
+    location.hash = '#/new';
+  }
+});
+
+function renderCheckinHistory() {
+  const all = getCheckins();
+  const days = Object.keys(all).filter(k => all[k] && all[k].a !== null && all[k].a !== undefined).sort().reverse();
+  const streak = CheckIn.streak(all, today());
+  $('#checkin-history').innerHTML = !days.length
+    ? '<p class="muted small">Answer the daily check-in on the home screen to start your health history.</p>'
+    : `<div class="ci-stats"><span><b>${days.length}</b>check-ins</span><span><b>${streak}</b>day streak</span></div>` +
+      days.slice(0, 14).map(k => {
+        const q = CheckIn.byId[all[k].q];
+        if (!q) return '';
+        const d = parseStamp(k + 'T12:00');
+        return `<div class="ci-hist"><span class="ci-hist-date">${esc(d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</span>
+          <span class="ci-hist-q">${q.icon} ${esc(q.q)}</span><b>${esc(CheckIn.answerLabel(q, all[k].a))}</b></div>`;
+      }).join('');
+}
+
 /* ---------- progress ---------- */
 function renderProgress() {
-  const info = Levels.levelInfo(Levels.totalXP(entries));
+  const info = Levels.levelInfo(xpNow());
   const words = entries.reduce((s, e) => s + Levels.wordCount(e), 0);
   $('#progress-hero').innerHTML = `
     <div class="hero-badge">${info.icon}</div>
@@ -720,7 +837,9 @@ function renderProgress() {
     <div><span>Wrote yesterday too (streak)</span><b>+${X.streakDay}</b></div>
     <div><span>Every 10 words</span><b>+${X.per10Words} <small>(up to ${X.wordsCap})</small></b></div>
     <div><span>Pick a mood</span><b>+${X.mood}</b></div>
-    <div><span>Add a photo</span><b>+${X.photo}</b></div>`;
+    <div><span>Add a photo</span><b>+${X.photo}</b></div>
+    <div><span>Answer the daily health check-in</span><b>+${CHECKIN_XP}</b></div>`;
+  renderCheckinHistory();
 }
 
 $('#editor').addEventListener('input', e => {
@@ -846,7 +965,7 @@ $('#btn-remove-pin').addEventListener('click', async () => {
 
 $('#btn-export').addEventListener('click', async () => {
   const all = await DB.all();
-  const blob = new Blob([JSON.stringify({ app: 'diary', version: 1, exportedAt: new Date().toISOString(), entries: all }, null, 1)],
+  const blob = new Blob([JSON.stringify({ app: 'diary', version: 1, exportedAt: new Date().toISOString(), entries: all, checkins: getCheckins() }, null, 1)],
     { type: 'application/json' });
   const name = `diary-backup-${localStamp().slice(0, 10)}.json`;
   const file = new File([blob], name, { type: 'application/json' });
@@ -878,7 +997,8 @@ $('#import-input').addEventListener('change', async e => {
     if (!ok) return;
     await DB.bulkPut(valid);
     entries = await DB.all();
-    settings.set('seenLevel', Levels.levelInfo(Levels.totalXP(entries)).level);
+    if (data && data.checkins && typeof data.checkins === 'object') saveCheckins({ ...data.checkins, ...getCheckins() });
+    settings.set('seenLevel', Levels.levelInfo(xpNow()).level);
     toast(`Imported ${valid.length} entries`);
   } catch {
     toast('That file is not a valid diary backup');
@@ -886,10 +1006,11 @@ $('#import-input').addEventListener('change', async e => {
 });
 
 $('#btn-wipe').addEventListener('click', async () => {
-  const ok = await dialog({ title: 'Delete ALL entries?', text: 'Everything will be erased from this device. Export a backup first if you might want it back.', okLabel: 'Delete everything', danger: true });
+  const ok = await dialog({ title: 'Delete ALL entries?', text: 'All entries and health check-ins will be erased from this device. Export a backup first if you might want them back.', okLabel: 'Delete everything', danger: true });
   if (!ok) return;
   await DB.clear();
   entries = [];
+  saveCheckins({});
   toast('All entries deleted');
   location.hash = '#/';
 });
@@ -939,7 +1060,7 @@ $('#btn-install').addEventListener('click', async () => {
     return;
   }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-  if (settings.get('seenLevel', null) === null) settings.set('seenLevel', Levels.levelInfo(Levels.totalXP(entries)).level);
+  if (settings.get('seenLevel', null) === null) settings.set('seenLevel', Levels.levelInfo(xpNow()).level);
   if (!showLock()) $('#app').hidden = false;
   applyMapMode();
   route();
