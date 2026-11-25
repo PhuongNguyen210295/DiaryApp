@@ -13,7 +13,7 @@ A private, offline-first diary styled as a starship captain's log, you install o
 - Optional passcode lock that re-locks when you leave the app
 - Light, dark or automatic theme
 - Works fully offline once loaded
-- **Invite friends** from Settings or the progress page: shares the app link through the phone's share menu (or copies it). Only the link is shared, never your entries
+- **Invite friends** from the home screen (share icon at the top) or the progress page: shares the app link through the phone's share menu (or copies it). Only the link is shared, never your entries
 - Export and import JSON backups (on phones, Export opens the share sheet, so you can save to Files, Google Drive or email it to yourself)
 
 ## Put it on your phone

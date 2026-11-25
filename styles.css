@@ -99,17 +99,18 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 .today-date { font: 600 .88rem/1.25 var(--sans); color: var(--text); margin-top: 4px; }
 .hud-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; margin-top: 2px; white-space: nowrap; }
 .clock { font: 700 .95rem/1.2 var(--display); color: var(--cyan); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
-.tz { font: 500 .72rem var(--display); color: var(--cyan); opacity: .75; margin-left: -5px; }
+.clock-group { white-space: nowrap; }
+.tz { font: 500 .72rem var(--display); color: var(--cyan); opacity: .75; }
 .tz:empty { display: none; }
 .stardate { font: 500 .72rem/1.2 var(--display); color: var(--muted); letter-spacing: .04em; }
 .topbar-actions { display: flex; gap: 2px; }
 .icon-btn {
-  width: 44px; height: 44px; display: grid; place-items: center;
+  width: 40px; height: 44px; display: grid; place-items: center;
   background: transparent; border: 0; border-radius: 12px; cursor: pointer; color: var(--text);
 }
 .icon-btn:active { background: var(--panel-2); color: var(--cyan); }
 .icon-btn.danger { color: var(--danger); }
-.icon-btn-spacer { width: 44px; }
+.icon-btn-spacer { width: 40px; }
 
 /* ---------- search, stats, mood filter ---------- */
 .search-bar input {
@@ -265,8 +266,6 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 .danger-zone h2 { color: var(--danger); }
 
 /* ---------- invite ---------- */
-.invite-card { border-color: color-mix(in srgb, var(--cyan) 35%, transparent); }
-.invite-card .btn { margin-top: 10px; width: 100%; }
 .btn svg { width: 18px; height: 18px; }
 .invite-wide { display: flex; width: 100%; margin-top: 16px; color: var(--cyan); border-color: color-mix(in srgb, var(--cyan) 45%, transparent); }
 
