@@ -3,7 +3,7 @@
 // Self-repair: if the page layout and this script come from different releases
 // (a stale saved copy), clear the saved copies and reload once.
 (function checkSameRelease() {
-  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'milestones', 'lu-milestone'];
+  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'milestones', 'lu-milestone'];
   if (required.every(id => document.getElementById(id))) {
     try { sessionStorage.removeItem('diary.repairing'); } catch { /* ignore */ }
     return;
@@ -257,8 +257,25 @@ function stardate(d = new Date()) {
   return `${d.getFullYear()}.${String(day).padStart(3, '0')}`;
 }
 
+// Today's date in the header and the browser tab, in the phone's own language.
+function showToday() {
+  const now = new Date();
+  const el = $('#today-date');
+  el.textContent = now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  el.dateTime = localStamp(now).slice(0, 10);
+  $('#stardate').textContent = `Stardate ${stardate(now)}`;
+  document.title = `Diary – ${now.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}`;
+}
+// keep it current: when the app comes back to the screen, and just after midnight
+document.addEventListener('visibilitychange', () => { if (!document.hidden) showToday(); });
+(function tickAtMidnight() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+  setTimeout(() => { showToday(); tickAtMidnight(); }, next - now);
+})();
+
 function render() {
-  $('#stardate').textContent = `Stardate ${stardate()}`;
+  showToday();
   renderLevelCard();
   renderStats();
   renderMoodFilter();

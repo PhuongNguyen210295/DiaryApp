@@ -96,7 +96,8 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 }
 .title { font: 700 1.7rem/1.1 var(--display); margin: 0; letter-spacing: .02em; }
 .title-block { display: flex; flex-direction: column; }
-.stardate { font: 500 .78rem/1.2 var(--display); color: var(--cyan); letter-spacing: .06em; margin-top: 3px; opacity: .85; }
+.today-date { font: 600 .88rem/1.25 var(--sans); color: var(--text); margin-top: 4px; }
+.stardate { font: 500 .74rem/1.2 var(--display); color: var(--cyan); letter-spacing: .06em; margin-top: 1px; opacity: .85; }
 .topbar-actions { display: flex; gap: 2px; }
 .icon-btn {
   width: 44px; height: 44px; display: grid; place-items: center;
