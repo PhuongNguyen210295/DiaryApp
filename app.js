@@ -620,10 +620,30 @@ $('#cal-map').addEventListener('touchend', e => {
 
 /* ---------- star map panel on the home screen ---------- */
 // 'panel': collapsible map on the home screen. 'button': an icon in the top bar instead.
-const mapMode = () => settings.get('mapMode', 'panel');
+// The star map lives in the top bar by default (it was briefly a home-screen panel by default).
+if (!settings.get('mapModeV2', false)) { settings.set('mapMode', 'button'); settings.set('mapModeV2', true); }
+const mapMode = () => settings.get('mapMode', 'button');
+
+// Top-bar planet: coloured by today's mood (pale until you write), with a count of days written this month.
+function renderMapLauncher() {
+  const btn = $('#btn-calendar');
+  const day = today();
+  const todays = entries.filter(e => dayKey(e.date) === day).sort((a, b) => b.date.localeCompare(a.date));
+  const color = todays.length ? moodColor(todays[0].mood) : '#c9d1ff';
+  btn.style.setProperty('--planet', color);
+  btn.classList.toggle('written', todays.length > 0);
+  const month = day.slice(0, 7);
+  const days = new Set(entries.filter(e => e.date.startsWith(month)).map(e => dayKey(e.date))).size;
+  const count = $('#ml-count');
+  count.hidden = days === 0;
+  count.textContent = days;
+  btn.setAttribute('aria-label', `Star map: ${days} day${days === 1 ? '' : 's'} written this month${todays.length ? '' : ', nothing written today yet'}`);
+  btn.title = 'Star map';
+}
 
 function applyMapMode() {
   const panel = mapMode() === 'panel';
+  renderMapLauncher();
   $('#btn-calendar').hidden = panel;
   $('#map-panel').hidden = !panel;
   $('#map-unpin').style.visibility = panel ? 'hidden' : 'visible';

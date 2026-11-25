@@ -81,7 +81,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .muted { color: var(--muted); }
 .small { font-size: .875rem; }
 .center { text-align: center; }
-svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+svg:not(.jm):not(.ml) { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 .view { max-width: 720px; margin: 0 auto; padding: 0 16px 120px; }
 
@@ -103,9 +103,9 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 .tz { font: 500 .72rem var(--display); color: var(--cyan); opacity: .75; }
 .tz:empty { display: none; }
 .stardate { font: 500 .72rem/1.2 var(--display); color: var(--muted); letter-spacing: .04em; }
-.topbar-actions { display: flex; gap: 2px; }
+.topbar-actions { display: flex; gap: 0; }
 .icon-btn {
-  width: 40px; height: 44px; display: grid; place-items: center;
+  width: 38px; height: 44px; display: grid; place-items: center;
   background: transparent; border: 0; border-radius: 12px; cursor: pointer; color: var(--text);
 }
 .icon-btn:active { background: var(--panel-2); color: var(--cyan); }
@@ -315,6 +315,26 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 .ci-hist-q { color: var(--muted); }
 .ci-hist b { font-family: var(--display); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .ci-opt { transition: none; } }
+
+/* ---------- star map launcher (top bar planet) ---------- */
+.map-launch { position: relative; width: 42px; --planet: #c9d1ff; }
+.ml { width: 36px; height: 36px; overflow: visible; }
+.ml-halo { fill: var(--planet); opacity: .16; transition: opacity .2s; }
+.ml-planet { fill: var(--planet); transition: fill .3s; }
+.ml-ring { fill: none; stroke: url(#ml-holo); stroke-width: 1.8; stroke-linecap: round; }
+.ml-moon { fill: #fff; filter: drop-shadow(0 0 2px #6ee7ff); }
+.ml-orbit { transform-origin: 20px 20px; animation: ml-orbit 9s linear infinite; }
+@keyframes ml-orbit { to { transform: rotate(360deg); } }
+.map-launch.written .ml-halo { opacity: .3; }
+.map-launch.written .ml { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--planet) 60%, transparent)); }
+.map-launch:hover .ml-halo { opacity: .4; }
+.map-launch:active .ml { transform: scale(.9); }
+.ml-count {
+  position: absolute; right: -2px; bottom: 2px; min-width: 17px; height: 15px; padding: 0 4px; border-radius: 8px;
+  background: var(--cyan); color: var(--on-holo); font: 700 .62rem/15px var(--display); text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+@media (prefers-reduced-motion: reduce) { .ml-orbit { animation: none; } .ml-planet, .ml-halo { transition: none; } }
 
 /* ---------- star map panel (home screen) ---------- */
 .map-panel {
