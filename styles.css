@@ -264,6 +264,12 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 .seg input:focus-visible + span { outline: 2px solid var(--cyan); }
 .danger-zone h2 { color: var(--danger); }
 
+/* ---------- invite ---------- */
+.invite-card { border-color: color-mix(in srgb, var(--cyan) 35%, transparent); }
+.invite-card .btn { margin-top: 10px; width: 100%; }
+.btn svg { width: 18px; height: 18px; }
+.invite-wide { display: flex; width: 100%; margin-top: 16px; color: var(--cyan); border-color: color-mix(in srgb, var(--cyan) 45%, transparent); }
+
 /* ---------- HUD panel: angled corners + hologram edge (level card, progress hero) ---------- */
 .level-card, .hero {
   position: relative; isolation: isolate;

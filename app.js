@@ -773,6 +773,27 @@ $('#btn-wipe').addEventListener('click', async () => {
   location.hash = '#/';
 });
 
+/* ---------- invite friends ---------- */
+// Shares only the app's address, never any entries.
+function appLink() {
+  return location.origin + location.pathname.replace(/index\.html$/, '');
+}
+async function invite() {
+  const url = appLink();
+  const text = "I'm keeping a diary with this app. It's private, works offline, and you level up as you write. Try it:";
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Diary', text, url }); toast('Invite sent'); return; }
+    catch (err) { if (err.name === 'AbortError') return; }   // closed the share menu
+  }
+  try {
+    await navigator.clipboard.writeText(`${text} ${url}`);
+    toast('Invite link copied. Paste it in a message');
+  } catch {
+    await dialog({ title: 'Invite friends', text: `Copy this link and send it to a friend: ${url}`, okLabel: 'Done' });
+  }
+}
+document.querySelectorAll('.js-invite').forEach(b => b.addEventListener('click', invite));
+
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
