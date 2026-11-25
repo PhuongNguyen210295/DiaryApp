@@ -139,8 +139,14 @@
             <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
           </button>
         </div>
-        <div id="cal-map" class="jm-wrap"></div>
-        <div id="cal-legend" class="cal-legend"></div>
+        <button id="cal-collapse" class="cal-collapse" type="button" aria-expanded="true" aria-controls="cal-map-wrap">
+          <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>Hide map</span>
+        </button>
+        <div id="cal-map-wrap">
+          <div id="cal-map" class="jm-wrap"></div>
+          <div id="cal-legend" class="cal-legend"></div>
+        </div>
+        <div id="cal-strip" class="cal-strip" role="group" aria-label="Days of the month" hidden></div>
       </div>
       <div id="cal-summary" class="cal-summary"></div>
       <h3 id="cal-day-title" class="month"></h3>

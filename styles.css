@@ -351,6 +351,31 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
   border: 0; background: transparent; cursor: pointer; padding: 6px 10px; border-radius: 10px;
   font: 700 1.2rem var(--display); letter-spacing: .02em;
 }
+.cal-collapse {
+  display: flex; align-items: center; gap: 6px; margin: -2px auto 8px; padding: 6px 12px; min-height: 36px;
+  border: 1px solid var(--line); border-radius: 18px; background: var(--panel); cursor: pointer;
+  font: 600 .85rem var(--display); color: var(--cyan);
+}
+.cal-collapse svg { width: 16px; height: 16px; transform: rotate(180deg); transition: transform .2s; }
+.cal-collapse[aria-expanded="false"] svg { transform: none; }
+.cal-strip {
+  display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 6px; scroll-snap-type: x proximity;
+  scrollbar-width: none; overscroll-behavior-x: contain;
+}
+.cal-strip::-webkit-scrollbar { display: none; }
+.cs-day {
+  flex: none; width: 46px; padding: 6px 0 8px; border-radius: 12px; scroll-snap-align: center; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--text);
+}
+.cs-day small { font-size: .68rem; color: var(--muted); }
+.cs-day b { font: 700 1.05rem/1.1 var(--display); }
+.cs-day i { width: 8px; height: 8px; border-radius: 50%; background: transparent; }
+.cs-day.has i { background: var(--c); box-shadow: 0 0 8px var(--c); }
+.cs-day.today { border-color: var(--cyan); }
+.cs-day.sel { background: color-mix(in srgb, var(--cyan) 18%, var(--panel)); border-color: var(--cyan); box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 30%, transparent); }
+.cs-day.future { opacity: .45; }
+@media (prefers-reduced-motion: reduce) { .cal-collapse svg { transition: none; } }
 .cal-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin-top: 12px; font-size: .75rem; color: var(--muted); }
 .cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .cal-legend i { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
