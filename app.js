@@ -3,7 +3,7 @@
 // Self-repair: if the page layout and this script come from different releases
 // (a stale saved copy), clear the saved copies and reload once.
 (function checkSameRelease() {
-  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'milestones', 'lu-milestone'];
+  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'clock', 'milestones', 'lu-milestone'];
   if (required.every(id => document.getElementById(id))) {
     try { sessionStorage.removeItem('diary.repairing'); } catch { /* ignore */ }
     return;
@@ -266,13 +266,35 @@ function showToday() {
   $('#stardate').textContent = `Stardate ${stardate(now)}`;
   document.title = `Diary – ${now.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}`;
 }
-// keep it current: when the app comes back to the screen, and just after midnight
-document.addEventListener('visibilitychange', () => { if (!document.hidden) showToday(); });
-(function tickAtMidnight() {
+// Live clock in the phone's own time zone. Ticks on the second; also rolls the date over at midnight.
+// 12-hour clocks read "9:05 PM"; 24-hour clocks keep the leading zero, "09:05".
+const uses12h = new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
+const clockFmt = new Intl.DateTimeFormat(undefined, { hour: uses12h ? 'numeric' : '2-digit', minute: '2-digit', second: '2-digit' });
+let shownDay = '';
+function tick() {
   const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
-  setTimeout(() => { showToday(); tickAtMidnight(); }, next - now);
+  const clock = $('#clock');
+  clock.textContent = clockFmt.format(now);
+  clock.dateTime = now.toISOString();
+  const day = localStamp(now).slice(0, 10);
+  if (day !== shownDay) {
+    shownDay = day;
+    showToday();
+    let zone = '';
+    try {
+      zone = new Intl.DateTimeFormat(undefined, { timeZoneName: 'shortOffset' }).formatToParts(now)
+        .find(p => p.type === 'timeZoneName')?.value || '';
+    } catch { /* older browsers */ }
+    const tz = $('#tz');
+    tz.textContent = zone;
+    tz.title = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  }
+}
+(function loop() {
+  tick();
+  setTimeout(loop, 1000 - (Date.now() % 1000) + 5);   // line up with the start of each second
 })();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { shownDay = ''; tick(); } });
 
 function render() {
   showToday();

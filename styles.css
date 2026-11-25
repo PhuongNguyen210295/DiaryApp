@@ -95,9 +95,13 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
   margin: 0 -16px; padding-left: 16px; padding-right: 16px;
 }
 .title { font: 700 1.7rem/1.1 var(--display); margin: 0; letter-spacing: .02em; }
-.title-block { display: flex; flex-direction: column; }
+.title-block { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .today-date { font: 600 .88rem/1.25 var(--sans); color: var(--text); margin-top: 4px; }
-.stardate { font: 500 .74rem/1.2 var(--display); color: var(--cyan); letter-spacing: .06em; margin-top: 1px; opacity: .85; }
+.hud-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; margin-top: 2px; white-space: nowrap; }
+.clock { font: 700 .95rem/1.2 var(--display); color: var(--cyan); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+.tz { font: 500 .72rem var(--display); color: var(--cyan); opacity: .75; margin-left: -5px; }
+.tz:empty { display: none; }
+.stardate { font: 500 .72rem/1.2 var(--display); color: var(--muted); letter-spacing: .04em; }
 .topbar-actions { display: flex; gap: 2px; }
 .icon-btn {
   width: 44px; height: 44px; display: grid; place-items: center;
