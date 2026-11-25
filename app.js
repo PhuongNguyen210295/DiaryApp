@@ -2,13 +2,15 @@
 
 /* ---------- constants & helpers ---------- */
 const MOODS = [
-  { id: 'great', emoji: '😄', label: 'Great' },
-  { id: 'good',  emoji: '🙂', label: 'Good' },
-  { id: 'okay',  emoji: '😐', label: 'Okay' },
-  { id: 'low',   emoji: '😔', label: 'Low' },
-  { id: 'awful', emoji: '😢', label: 'Awful' },
+  { id: 'great', emoji: '😄', label: 'Great', color: '#ffc93c' },
+  { id: 'good',  emoji: '🙂', label: 'Good',  color: '#6fdc8c' },
+  { id: 'okay',  emoji: '😐', label: 'Okay',  color: '#5ec8f2' },
+  { id: 'low',   emoji: '😔', label: 'Low',   color: '#b79cf0' },
+  { id: 'awful', emoji: '😢', label: 'Awful', color: '#ff8fab' },
 ];
 const moodById = Object.fromEntries(MOODS.map(m => [m.id, m]));
+const NO_MOOD_COLOR = '#ffb38a';
+const moodColor = id => (id && moodById[id] ? moodById[id].color : NO_MOOD_COLOR);
 
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -113,7 +115,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- routing ---------- */
 function show(view) {
-  for (const id of ['list', 'editor', 'settings']) $('#view-' + id).hidden = id !== view;
+  for (const id of ['list', 'editor', 'settings', 'calendar', 'progress']) $('#view-' + id).hidden = id !== view;
   window.scrollTo(0, 0);
 }
 
@@ -124,8 +126,16 @@ async function route() {
     const entry = entries.find(e => e.id === id);
     if (!entry) { location.replace('#/'); return; }
     openEditor(entry);
-  } else if (hash === '#/new') {
-    openEditor(null);
+  } else if (hash.startsWith('#/new')) {
+    openEditor(null, hash.slice(6) || null);
+  } else if (hash === '#/calendar') {
+    await leaveEditor();
+    renderCalendar();
+    show('calendar');
+  } else if (hash === '#/progress') {
+    await leaveEditor();
+    renderProgress();
+    show('progress');
   } else if (hash === '#/settings') {
     await leaveEditor();
     renderSettings();
@@ -184,7 +194,42 @@ $('#mood-filter').addEventListener('click', e => {
   render();
 });
 
+function renderLevelCard() {
+  const info = Levels.levelInfo(Levels.totalXP(entries));
+  $('#level-card').innerHTML = `
+    <div class="lc-badge">${info.icon}<span>${info.level}</span></div>
+    <div class="lc-main">
+      <div class="lc-top"><b>Level ${info.level} · ${esc(info.title)}</b><span>${info.into}/${info.need} XP</span></div>
+      <div class="xpbar"><i style="width:${Math.round(info.pct * 100)}%"></i></div>
+    </div>
+    <svg class="lc-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>`;
+}
+
+function entryCard(e) {
+  const d = parseStamp(e.date);
+  const snippet = e.body.replace(/\s+/g, ' ').slice(0, 140);
+  const mood = e.mood ? moodById[e.mood].emoji : '';
+  const thumb = e.photos && e.photos.length ? `<img class="thumb" src="${e.photos[0]}" alt="" loading="lazy">` : '';
+  return `
+      <a class="entry" href="#/entry/${encodeURIComponent(e.id)}" style="--mood:${moodColor(e.mood)}">
+        <div class="entry-date">
+          <span class="day">${d.getDate()}</span>
+          <span class="wd">${esc(d.toLocaleDateString(undefined, { weekday: 'short' }))}</span>
+        </div>
+        <div class="entry-main">
+          <div class="entry-head">
+            <span class="entry-title">${esc(e.title || 'Untitled')}</span>
+            <span class="entry-mood">${mood}</span>
+          </div>
+          <p class="entry-snippet">${esc(snippet) || '<span class="muted">No text</span>'}</p>
+          ${(e.tags || []).length ? `<div class="tags">${e.tags.map(t => `<span class="tag">#${esc(t)}</span>`).join('')}</div>` : ''}
+        </div>
+        ${thumb}
+      </a>`;
+}
+
 function render() {
+  renderLevelCard();
   renderStats();
   renderMoodFilter();
   const list = filtered();
@@ -204,31 +249,15 @@ function render() {
     const d = parseStamp(e.date);
     const month = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
     if (month !== lastMonth) { html += `<h3 class="month">${esc(month)}</h3>`; lastMonth = month; }
-    const snippet = e.body.replace(/\s+/g, ' ').slice(0, 140);
-    const mood = e.mood ? moodById[e.mood].emoji : '';
-    const thumb = e.photos && e.photos.length ? `<img class="thumb" src="${e.photos[0]}" alt="" loading="lazy">` : '';
-    html += `
-      <a class="entry" href="#/entry/${encodeURIComponent(e.id)}">
-        <div class="entry-date">
-          <span class="day">${d.getDate()}</span>
-          <span class="wd">${esc(d.toLocaleDateString(undefined, { weekday: 'short' }))}</span>
-        </div>
-        <div class="entry-main">
-          <div class="entry-head">
-            <span class="entry-title">${esc(e.title || 'Untitled')}</span>
-            <span class="entry-mood">${mood}</span>
-          </div>
-          <p class="entry-snippet">${esc(snippet) || '<span class="muted">No text</span>'}</p>
-          ${(e.tags || []).length ? `<div class="tags">${e.tags.map(t => `<span class="tag">#${esc(t)}</span>`).join('')}</div>` : ''}
-        </div>
-        ${thumb}
-      </a>`;
+    html += entryCard(e);
   }
   el.innerHTML = html;
 }
 
 $('#btn-new').addEventListener('click', () => { location.hash = '#/new'; });
 $('#btn-settings').addEventListener('click', () => { location.hash = '#/settings'; });
+$('#btn-calendar').addEventListener('click', () => { location.hash = '#/calendar'; });
+document.querySelectorAll('.js-home').forEach(b => b.addEventListener('click', () => { location.hash = '#/'; }));
 $('#btn-settings-back').addEventListener('click', () => history.length > 1 ? history.back() : (location.hash = '#/'));
 $('#btn-search').addEventListener('click', () => {
   const bar = $('#search-bar');
@@ -248,10 +277,14 @@ $('#entries').addEventListener('click', e => {
 
 /* ---------- editor ---------- */
 let saveTimer = null;
+let xpAtOpen = 0;
 
-function openEditor(entry) {
+function openEditor(entry, onDay) {
+  xpAtOpen = Levels.totalXP(entries);
+  let date = localStamp();
+  if (onDay && /^\d{4}-\d{2}-\d{2}$/.test(onDay)) date = onDay + date.slice(10);
   current = entry ? { ...entry, photos: [...(entry.photos || [])] }
-    : { id: uid(), date: localStamp(), title: '', body: '', mood: null, photos: [], tags: [], isNew: true };
+    : { id: uid(), date, title: '', body: '', mood: null, photos: [], tags: [], isNew: true };
   $('#ed-date').value = current.date;
   $('#ed-title').value = current.title;
   $('#ed-body').value = current.body;
@@ -297,27 +330,201 @@ function scheduleSave() {
   saveTimer = setTimeout(flushSave, 600);
 }
 
-async function flushSave() {
+let saveChain = Promise.resolve();
+
+// Saves run one at a time, so an autosave and a "Back" tap can't overlap.
+function flushSave() {
   clearTimeout(saveTimer);
   saveTimer = null;
-  if (!current || isEmpty(current)) return;
-  const { isNew, ...data } = current;
+  const editing = current;
+  saveChain = saveChain.then(() => saveEntry(editing)).catch(() => toast('Could not save. Is storage full?'));
+  return saveChain;
+}
+
+async function saveEntry(editing) {
+  if (!editing || isEmpty(editing)) return;
+  const { isNew, ...data } = editing;
+  editing.isNew = false;
   data.tags = extractTags(data.title + ' ' + data.body);
   data.updatedAt = Date.now();
-  if (isNew) data.createdAt = Date.now();
+  if (isNew) data.createdAt = editing.createdAt = Date.now();
   await DB.put(data);
-  current.isNew = false;
-  $('#btn-delete').hidden = false;
   const i = entries.findIndex(e => e.id === data.id);
   if (i >= 0) entries[i] = data; else entries.push(data);
+  if (editing !== current) return;            // editor already closed
+  $('#btn-delete').hidden = false;
   $('#save-state').textContent = 'Saved ✓';
-  if (isNew && location.hash === '#/new') history.replaceState(null, '', '#/entry/' + encodeURIComponent(data.id));
+  if (isNew && location.hash.startsWith('#/new')) history.replaceState(null, '', '#/entry/' + encodeURIComponent(data.id));
 }
 
 async function leaveEditor() {
   if (!current) return;
   await flushSave();
   current = null;
+  const gained = Levels.totalXP(entries) - xpAtOpen;
+  if (gained > 0) toast(`+${gained} XP ✨`);
+  checkLevelUp();
+}
+
+/* ---------- level up ---------- */
+function checkLevelUp() {
+  const info = Levels.levelInfo(Levels.totalXP(entries));
+  const seen = settings.get('seenLevel', null);
+  settings.set('seenLevel', info.level);
+  if (seen === null || info.level <= seen) return;   // first launch, or no change
+  $('#lu-icon').textContent = info.icon;
+  $('#lu-level').textContent = `Level ${info.level}`;
+  $('#lu-title').textContent = info.title;
+  $('#lu-text').textContent = info.nextTitle
+    ? `Reach level ${info.nextTitle.level} to become ${info.nextTitle.icon} ${info.nextTitle.title}.`
+    : 'You have reached the highest title. Legendary!';
+  setTimeout(() => { $('#levelup').showModal(); confetti(); }, 250);
+}
+
+function confetti() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c = $('#confetti');
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const colors = [...MOODS.map(m => m.color), NO_MOOD_COLOR];
+  const bits = Array.from({ length: 140 }, () => ({
+    x: innerWidth / 2 + (Math.random() - .5) * 80, y: innerHeight * .4,
+    vx: (Math.random() - .5) * 12, vy: -Math.random() * 14 - 4,
+    r: Math.random() * Math.PI, vr: (Math.random() - .5) * .3,
+    w: 6 + Math.random() * 6, h: 4 + Math.random() * 4, color: colors[Math.floor(Math.random() * colors.length)],
+  }));
+  c.hidden = false;
+  const start = performance.now();
+  (function frame(t) {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (const b of bits) {
+      b.vy += .35; b.vx *= .99; b.x += b.vx; b.y += b.vy; b.r += b.vr;
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.r);
+      ctx.fillStyle = b.color; ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); ctx.restore();
+    }
+    if (t - start < 3000) requestAnimationFrame(frame);
+    else { ctx.clearRect(0, 0, innerWidth, innerHeight); c.hidden = true; }
+  })(start);
+}
+
+/* ---------- calendar ---------- */
+const today = () => localStamp().slice(0, 10);
+let calMonth = today().slice(0, 7);     // "YYYY-MM"
+let calDay = today();
+
+function shiftMonth(ym, delta) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+
+function renderCalendar() {
+  const [y, m] = calMonth.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  const daysIn = new Date(y, m, 0).getDate();
+  const lead = (first.getDay() + 6) % 7;        // Monday-first
+  const byDay = {};
+  for (const e of entries) (byDay[dayKey(e.date)] ||= []).push(e);
+  for (const k in byDay) byDay[k].sort((a, b) => b.date.localeCompare(a.date));
+
+  $('#cal-month').textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const wd = [];
+  for (let i = 0; i < 7; i++) wd.push(new Date(2024, 0, 1 + i).toLocaleDateString(undefined, { weekday: 'narrow' }));
+  $('#cal-weekdays').innerHTML = wd.map(w => `<span>${esc(w)}</span>`).join('');
+
+  let html = '<span></span>'.repeat(lead);
+  const t = today();
+  for (let d = 1; d <= daysIn; d++) {
+    const key = `${calMonth}-${pad(d)}`;
+    const list = byDay[key] || [];
+    const cls = ['cal-day'];
+    if (list.length) cls.push('has');
+    if (key === t) cls.push('today');
+    if (key === calDay) cls.push('sel');
+    if (key > t) cls.push('future');
+    const style = list.length ? ` style="--c:${moodColor(list[0].mood)}"` : '';
+    const emoji = list.length && list[0].mood ? `<i>${moodById[list[0].mood].emoji}</i>` : '';
+    const more = list.length > 1 ? `<b>${list.length}</b>` : '';
+    html += `<button class="${cls.join(' ')}" data-day="${key}"${style} aria-label="${key}${list.length ? `, ${list.length} entr${list.length > 1 ? 'ies' : 'y'}` : ''}">
+      <span>${d}</span>${emoji}${more}</button>`;
+  }
+  $('#cal-grid').innerHTML = html;
+  $('#cal-legend').innerHTML = MOODS.map(mo => `<span><i style="background:${mo.color}"></i>${mo.label}</span>`).join('') +
+    `<span><i style="background:${NO_MOOD_COLOR}"></i>No mood</span>`;
+
+  // month summary
+  const monthEntries = entries.filter(e => e.date.startsWith(calMonth));
+  const daysWritten = new Set(monthEntries.map(e => dayKey(e.date))).size;
+  const counts = MOODS.map(mo => ({ ...mo, n: monthEntries.filter(e => e.mood === mo.id).length })).filter(x => x.n);
+  const total = counts.reduce((s, x) => s + x.n, 0);
+  $('#cal-summary').innerHTML = monthEntries.length ? `
+    <div class="cal-sum-row"><span><b>${daysWritten}</b> day${daysWritten === 1 ? '' : 's'} written</span>
+      <span><b>${monthEntries.length}</b> entr${monthEntries.length === 1 ? 'y' : 'ies'}</span></div>
+    ${total ? `<div class="moodbar">${counts.map(x => `<i style="flex:${x.n};background:${x.color}" title="${x.label}: ${x.n}"></i>`).join('')}</div>
+      <div class="moodbar-key">${counts.map(x => `<span>${x.emoji} ${x.n}</span>`).join('')}</div>` : ''}` : '';
+
+  // selected day
+  const sel = parseStamp(calDay + 'T12:00');
+  $('#cal-day-title').textContent = sel.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  const dayList = byDay[calDay] || [];
+  $('#cal-day').innerHTML = dayList.map(entryCard).join('') +
+    (calDay <= t ? `<a class="cal-add" href="#/new/${calDay}">＋ Write for this day</a>` : '<p class="muted center small">This day hasn\'t happened yet.</p>');
+}
+
+$('#cal-prev').addEventListener('click', () => { calMonth = shiftMonth(calMonth, -1); renderCalendar(); });
+$('#cal-next').addEventListener('click', () => { calMonth = shiftMonth(calMonth, 1); renderCalendar(); });
+$('#cal-month').addEventListener('click', () => { calMonth = today().slice(0, 7); calDay = today(); renderCalendar(); });
+$('#cal-grid').addEventListener('click', e => {
+  const b = e.target.closest('.cal-day');
+  if (!b) return;
+  calDay = b.dataset.day;
+  renderCalendar();
+  $('#cal-day-title').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+let touchX = null;
+$('#cal-grid').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+$('#cal-grid').addEventListener('touchend', e => {
+  if (touchX === null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  touchX = null;
+  if (Math.abs(dx) > 50) { calMonth = shiftMonth(calMonth, dx < 0 ? 1 : -1); renderCalendar(); }
+});
+
+/* ---------- progress ---------- */
+function renderProgress() {
+  const info = Levels.levelInfo(Levels.totalXP(entries));
+  const words = entries.reduce((s, e) => s + Levels.wordCount(e), 0);
+  $('#progress-hero').innerHTML = `
+    <div class="hero-badge">${info.icon}</div>
+    <p class="hero-level">Level ${info.level}</p>
+    <h2 class="hero-title">${esc(info.title)}</h2>
+    <div class="xpbar big"><i style="width:${Math.round(info.pct * 100)}%"></i></div>
+    <p class="small hero-xp">${info.into} / ${info.need} XP to level ${info.level + 1}</p>
+    ${info.nextTitle ? `<p class="small hero-next">Next title at level ${info.nextTitle.level}: ${info.nextTitle.icon} ${esc(info.nextTitle.title)}</p>` : ''}
+    <div class="hero-stats">
+      <span><b>${info.xp.toLocaleString()}</b>total XP</span>
+      <span><b>${entries.length}</b>entries</span>
+      <span><b>${words.toLocaleString()}</b>words</span>
+    </div>`;
+  const list = Levels.badges(entries);
+  const done = list.filter(b => b.done).length;
+  $('#badges').innerHTML = `<p class="muted small badges-count">${done} of ${list.length} unlocked</p>` + list.map(b => `
+    <div class="badge ${b.done ? 'done' : ''}">
+      <div class="badge-icon">${b.icon}</div>
+      <div><b>${esc(b.name)}</b><span>${esc(b.desc)}</span>
+        ${!b.done && b.progress ? `<em>${esc(b.progress)}</em>` : ''}</div>
+      ${b.done ? '<span class="badge-check">✓</span>' : ''}
+    </div>`).join('');
+  const X = Levels.XP;
+  $('#xp-rules').innerHTML = `
+    <div><span>Write an entry</span><b>+${X.entry}</b></div>
+    <div><span>First entry of the day</span><b>+${X.newDay}</b></div>
+    <div><span>Wrote yesterday too (streak)</span><b>+${X.streakDay}</b></div>
+    <div><span>Every 10 words</span><b>+${X.per10Words} <small>(up to ${X.wordsCap})</small></b></div>
+    <div><span>Pick a mood</span><b>+${X.mood}</b></div>
+    <div><span>Add a photo</span><b>+${X.photo}</b></div>`;
 }
 
 $('#editor').addEventListener('input', e => {
@@ -474,6 +681,7 @@ $('#import-input').addEventListener('change', async e => {
     if (!ok) return;
     await DB.bulkPut(valid);
     entries = await DB.all();
+    settings.set('seenLevel', Levels.levelInfo(Levels.totalXP(entries)).level);
     toast(`Imported ${valid.length} entries`);
   } catch {
     toast('That file is not a valid diary backup');
@@ -513,6 +721,7 @@ $('#btn-install').addEventListener('click', async () => {
     return;
   }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if (settings.get('seenLevel', null) === null) settings.set('seenLevel', Levels.levelInfo(Levels.totalXP(entries)).level);
   if (!showLock()) $('#app').hidden = false;
   route();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {

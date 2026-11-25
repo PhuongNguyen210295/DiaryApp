@@ -8,6 +8,8 @@ A private, offline-first diary you install on your phone's home screen. It's a P
 - `#tags` written anywhere in an entry are picked up automatically; tap a tag to filter
 - Search across all entries, filter by mood
 - Entry count, monthly count and writing streak
+- **Calendar** with each day coloured by your mood. Tap a day to read it, or write for a day you missed
+- **Levels and badges:** earn XP every time you write, level up through titles from *Blank Page* to *Legendary Author*, and unlock 14 badges
 - Optional passcode lock that re-locks when you leave the app
 - Light, dark or automatic theme
 - Works fully offline once loaded

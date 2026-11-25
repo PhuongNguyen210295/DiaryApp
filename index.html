@@ -37,6 +37,9 @@
       <header class="topbar">
         <h1 class="title">Diary</h1>
         <div class="topbar-actions">
+          <button id="btn-calendar" class="icon-btn" aria-label="Calendar">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          </button>
           <button id="btn-search" class="icon-btn" aria-label="Search">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
           </button>
@@ -50,6 +53,7 @@
         <input id="search-input" type="search" placeholder="Search entries, #tags, moods…" aria-label="Search entries">
       </div>
 
+      <a id="level-card" class="level-card" href="#/progress" aria-label="Your level and badges"></a>
       <div id="stats" class="stats"></div>
       <div id="mood-filter" class="chips" role="group" aria-label="Filter by mood"></div>
 
@@ -87,6 +91,50 @@
         </div>
         <p class="muted small tip">Tip: write <b>#tags</b> anywhere in the text to organize entries.</p>
       </form>
+    </section>
+
+    <!-- Calendar view -->
+    <section id="view-calendar" class="view" hidden>
+      <header class="topbar">
+        <button class="icon-btn js-home" aria-label="Back">
+          <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <h1 class="title">Calendar</h1>
+        <span class="icon-btn-spacer"></span>
+      </header>
+      <div class="cal">
+        <div class="cal-head">
+          <button id="cal-prev" class="icon-btn" aria-label="Previous month">
+            <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button id="cal-month" class="cal-month" aria-label="Go to this month"></button>
+          <button id="cal-next" class="icon-btn" aria-label="Next month">
+            <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div id="cal-weekdays" class="cal-grid cal-weekdays"></div>
+        <div id="cal-grid" class="cal-grid"></div>
+        <div id="cal-legend" class="cal-legend"></div>
+      </div>
+      <div id="cal-summary" class="cal-summary"></div>
+      <h3 id="cal-day-title" class="month"></h3>
+      <div id="cal-day" class="entries"></div>
+    </section>
+
+    <!-- Progress view -->
+    <section id="view-progress" class="view" hidden>
+      <header class="topbar">
+        <button class="icon-btn js-home" aria-label="Back">
+          <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <h1 class="title">Your progress</h1>
+        <span class="icon-btn-spacer"></span>
+      </header>
+      <div id="progress-hero" class="hero"></div>
+      <h3 class="month">Badges</h3>
+      <div id="badges" class="badges"></div>
+      <h3 class="month">How to earn XP</h3>
+      <div id="xp-rules" class="card xp-rules"></div>
     </section>
 
     <!-- Settings view -->
@@ -150,6 +198,18 @@
     </section>
   </div>
 
+  <dialog id="levelup" class="dlg levelup">
+    <form method="dialog">
+      <div class="lu-burst" aria-hidden="true"><span id="lu-icon"></span></div>
+      <p class="lu-kicker">Level up!</p>
+      <h2 id="lu-level"></h2>
+      <p id="lu-title" class="lu-title"></p>
+      <p id="lu-text" class="muted small"></p>
+      <button value="ok" class="btn primary wide">Keep writing ✨</button>
+    </form>
+  </dialog>
+  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+
   <div id="toast" class="toast" role="status" hidden></div>
 
   <dialog id="dlg" class="dlg">
@@ -165,6 +225,7 @@
   </dialog>
 
   <script src="db.js"></script>
+  <script src="levels.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
