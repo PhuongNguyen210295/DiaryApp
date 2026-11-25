@@ -99,5 +99,32 @@ const Levels = (() => {
     ];
   }
 
-  return { XP, entryXP, totalXP, levelInfo, badges, wordCount };
+  // A milestone badge for every 10 levels. Levels 10–50 are always listed;
+  // past that, every milestone you've reached plus the next one.
+  const MILESTONES = [
+    ['🛰️', 'Orbit Reached'], ['🌙', 'Moonwalker'], ['⭐', 'Star Sailor'], ['🌌', 'Nebula Navigator'],
+    ['🌠', 'Galaxy Keeper'], ['☄️', 'Comet Rider'], ['💫', 'Quasar'], ['🌟', 'Supernova'],
+    ['🕳️', 'Black Hole Diver'], ['🪐', 'Universe Architect'],
+  ];
+  function milestone(level) {
+    const n = level / 10;
+    const [icon, name] = MILESTONES[n - 1] || ['♾️', `Beyond the Stars ${n - MILESTONES.length}`];
+    return { level, icon, name };
+  }
+  function milestones(currentLevel) {
+    const last = Math.max(50, (Math.floor(currentLevel / 10) + 1) * 10);
+    const list = [];
+    for (let l = 10; l <= last; l += 10) {
+      const m = milestone(l);
+      list.push({ ...m, desc: `Reach level ${l}`, done: currentLevel >= l, progress: `Level ${Math.min(currentLevel, l)}/${l}` });
+    }
+    return list;
+  }
+  // The milestone crossed when going from level `from` to `to`, if any (highest one wins).
+  function milestoneBetween(from, to) {
+    const top = Math.floor(to / 10) * 10;
+    return top > from && top >= 10 ? milestone(top) : null;
+  }
+
+  return { XP, entryXP, totalXP, levelInfo, badges, wordCount, milestones, milestoneBetween };
 })();

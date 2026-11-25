@@ -9,7 +9,7 @@ A private, offline-first diary styled as a starship captain's log, you install o
 - Search across all entries, filter by mood
 - Entry count, monthly count and writing streak
 - **Star map:** each month is a route through space. Days you wrote are planets in your mood's colour, missed days are faint stars, a glowing lane marks your streaks, the nebula colour changes with the season, and your level badge hovers over today. Tap a stop to read that day, or write for a day you missed
-- **Levels and badges:** earn XP every time you write, level up through titles from *Blank Page* to *Legendary Author*, and unlock 14 badges
+- **Levels and badges:** earn XP every time you write, level up through titles from *Blank Page* to *Legendary Author*, unlock 14 badges, and earn a milestone badge every 10 levels (Orbit Reached, Moonwalker, Star Sailor…)
 - Optional passcode lock that re-locks when you leave the app
 - Light, dark or automatic theme
 - Works fully offline once loaded

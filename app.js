@@ -3,7 +3,7 @@
 // Self-repair: if the page layout and this script come from different releases
 // (a stale saved copy), clear the saved copies and reload once.
 (function checkSameRelease() {
-  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate'];
+  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'milestones', 'lu-milestone'];
   if (required.every(id => document.getElementById(id))) {
     try { sessionStorage.removeItem('diary.repairing'); } catch { /* ignore */ }
     return;
@@ -408,6 +408,12 @@ function checkLevelUp() {
   $('#lu-text').textContent = info.nextTitle
     ? `Reach level ${info.nextTitle.level} to become ${info.nextTitle.icon} ${info.nextTitle.title}.`
     : 'You have reached the highest title. Legendary!';
+  const ms = Levels.milestoneBetween(seen, info.level);
+  $('#lu-milestone').hidden = !ms;
+  if (ms) {
+    $('#lu-ms-icon').textContent = ms.icon;
+    $('#lu-ms-name').textContent = ms.name;
+  }
   setTimeout(() => { $('#levelup').showModal(); confetti(); }, 250);
 }
 
@@ -530,6 +536,15 @@ function renderProgress() {
       <span><b>${entries.length}</b>entries</span>
       <span><b>${words.toLocaleString()}</b>words</span>
     </div>`;
+  const ms = Levels.milestones(info.level);
+  const msDone = ms.filter(b => b.done).length;
+  $('#milestones').innerHTML = `<p class="muted small badges-count">${msDone} unlocked. You earn a new one every 10 levels.</p>` + ms.map(b => `
+    <div class="badge milestone ${b.done ? 'done' : ''}">
+      <div class="badge-icon">${b.icon}</div>
+      <div><b>${esc(b.name)}</b><span>${esc(b.desc)}</span>
+        ${!b.done ? `<em>${esc(b.progress)}</em>` : ''}</div>
+      ${b.done ? '<span class="badge-check">✓</span>' : ''}
+    </div>`).join('');
   const list = Levels.badges(entries);
   const done = list.filter(b => b.done).length;
   $('#badges').innerHTML = `<p class="muted small badges-count">${done} of ${list.length} unlocked</p>` + list.map(b => `
