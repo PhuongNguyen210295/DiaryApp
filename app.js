@@ -31,6 +31,21 @@ const moodById = Object.fromEntries(MOODS.map(m => [m.id, m]));
 const NO_MOOD_COLOR = '#8fa3ff';
 const moodColor = id => (id && moodById[id] ? moodById[id].color : NO_MOOD_COLOR);
 
+// How you felt on a day: your moods scored Awful 1 … Great 5, averaged over that day's entries.
+const MOOD_LEVEL = { awful: 1, low: 2, okay: 3, good: 4, great: 5 };
+const LEVEL_MOOD = ['awful', 'low', 'okay', 'good', 'great'];
+function dayFeeling(list) {
+  const levels = (list || []).map(e => MOOD_LEVEL[e.mood]).filter(Boolean);
+  if (!levels.length) return null;
+  const avg = levels.reduce((a, b) => a + b, 0) / levels.length;
+  const level = Math.round(avg);
+  const mood = moodById[LEVEL_MOOD[level - 1]];
+  return { level, avg, count: levels.length, color: mood.color, label: mood.label, emoji: mood.emoji };
+}
+function feelingBar(f) {
+  return `<span class="feel-bar" aria-hidden="true">${[1, 2, 3, 4, 5].map(i => `<i${i <= f.level ? ` style="background:${f.color};box-shadow:0 0 6px ${f.color}"` : ''}></i>`).join('')}</span>`;
+}
+
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -521,7 +536,7 @@ function renderCalendar() {
   $('#cal-map').innerHTML = JourneyMap.render({
     month: calMonth, byDay, today: today(), selected: calDay,
     level: Levels.levelInfo(xpNow()),
-    moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️',
+    moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️', feeling: dayFeeling,
     monthLabel: first.toLocaleDateString(undefined, { month: 'long' }),
     idPrefix: 'full-',
   });
@@ -546,7 +561,11 @@ function renderCalendar() {
   const sel = parseStamp(calDay + 'T12:00');
   $('#cal-day-title').textContent = sel.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   const dayList = byDay[calDay] || [];
-  $('#cal-day').innerHTML = dayList.map(entryCard).join('') +
+  const feel = dayFeeling(dayList);
+  const feelRow = feel ? `<div class="feel-row" role="img" aria-label="Feeling ${feel.level} out of 5: ${feel.label}">
+      <span class="muted small">Feeling</span>${feelingBar(feel)}<b>${feel.emoji} ${esc(feel.label)}</b>
+      ${feel.count > 1 ? `<span class="muted small">avg of ${feel.count} entries</span>` : ''}</div>` : '';
+  $('#cal-day').innerHTML = feelRow + dayList.map(entryCard).join('') +
     (calDay <= t ? `<a class="cal-add" href="#/new/${calDay}">＋ Write for this day</a>` : '<p class="muted center small">This day hasn\'t happened yet.</p>');
 }
 
@@ -569,14 +588,28 @@ $('#cal-map').addEventListener('keydown', e => {
   const stop = e.target.closest('.jm-stop');
   if (stop && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pickDay(stop); }
 });
-let touchX = null;
-$('#cal-map').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+// Change month only on a quick, clearly sideways swipe. Any up/down movement means you're
+// scrolling, so the month never changes by accident.
+let swipe = null;
+$('#cal-map').addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) { swipe = null; return; }
+  swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+}, { passive: true });
+$('#cal-map').addEventListener('touchmove', e => {
+  if (swipe && Math.abs(e.touches[0].clientY - swipe.y) > 12) swipe = null;   // it's a scroll
+}, { passive: true });
 $('#cal-map').addEventListener('touchend', e => {
-  if (touchX === null) return;
-  const dx = e.changedTouches[0].clientX - touchX;
-  touchX = null;
-  if (Math.abs(dx) > 50) { calMonth = shiftMonth(calMonth, dx < 0 ? 1 : -1); renderCalendar(); }
+  if (!swipe) return;
+  const dx = e.changedTouches[0].clientX - swipe.x;
+  const dy = e.changedTouches[0].clientY - swipe.y;
+  const quick = Date.now() - swipe.t < 600;
+  swipe = null;
+  if (quick && Math.abs(dx) > 70 && Math.abs(dy) < 30 && Math.abs(dx) > 3 * Math.abs(dy)) {
+    calMonth = shiftMonth(calMonth, dx < 0 ? 1 : -1);
+    renderCalendar();
+  }
 });
+$('#cal-map').addEventListener('touchcancel', () => { swipe = null; });
 
 /* ---------- star map panel on the home screen ---------- */
 // 'panel': collapsible map on the home screen. 'button': an icon in the top bar instead.
@@ -590,7 +623,8 @@ function renderMapLauncher() {
   const btn = $('#btn-calendar');
   const day = today();
   const todays = entries.filter(e => dayKey(e.date) === day).sort((a, b) => b.date.localeCompare(a.date));
-  const color = todays.length ? moodColor(todays[0].mood) : '#c9d1ff';
+  const feel = dayFeeling(todays);
+  const color = todays.length ? (feel ? feel.color : moodColor(null)) : '#c9d1ff';
   btn.style.setProperty('--planet', color);
   btn.classList.toggle('written', todays.length > 0);
   const month = day.slice(0, 7);
@@ -623,7 +657,7 @@ function renderMapPanel() {
   $('#mp-map').innerHTML = JourneyMap.render({
     month: today().slice(0, 7), byDay: entriesByDay(), today: today(), selected: null,
     level: Levels.levelInfo(xpNow()),
-    moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️',
+    moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️', feeling: dayFeeling,
     monthLabel: now.toLocaleDateString(undefined, { month: 'long' }),
     idPrefix: 'mini-',
   });

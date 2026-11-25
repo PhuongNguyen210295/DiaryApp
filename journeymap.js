@@ -28,6 +28,7 @@ const JourneyMap = (() => {
 
   const xmlEsc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const f = n => n.toFixed(1);
+  const f1 = f;
 
   /**
    * opts: { month: 'YYYY-MM', byDay: {key: [entries]}, today: 'YYYY-MM-DD', selected, level: {level, icon},
@@ -110,21 +111,32 @@ const JourneyMap = (() => {
       const k = key(i);
       const list = opts.byDay[k] || [];
       const isFuture = k > opts.today;
-      const label = `${i + 1} ${opts.monthLabel}${list.length ? `, ${list.length} entr${list.length > 1 ? 'ies' : 'y'}` : ''}`;
+      const feel = list.length && opts.feeling ? opts.feeling(list) : null;
+      const label = `${i + 1} ${opts.monthLabel}${list.length ? `, ${list.length} entr${list.length > 1 ? 'ies' : 'y'}` : ''}${feel ? `, feeling ${feel.level} of 5 (${feel.label})` : ''}`;
       svg += `<g class="jm-stop${isFuture ? ' future' : ''}" data-day="${k}" role="button" tabindex="0" aria-label="${xmlEsc(label)}">
         <circle cx="${x}" cy="${y}" r="26" class="jm-hit"/>`;
       if (k === opts.selected) svg += `<circle cx="${x}" cy="${y}" r="${list.length ? 27 : 14}" class="jm-sel"/>`;
       if (k === opts.today) svg += `<circle cx="${x}" cy="${y}" r="22" class="jm-pulse"/>`;
       if (list.length) {
+        // the planet shows how you felt that day (average of the day's moods)
+        const f = opts.feeling ? opts.feeling(list) : null;
         const mood = list[0].mood;
-        const c = opts.moodColor(mood);
+        const c = f ? f.color : opts.moodColor(mood);
         svg += `<circle cx="${x}" cy="${y}" r="25" fill="${c}" opacity=".16"/>
           <g class="jm-planet">
             <circle cx="${x}" cy="${y}" r="18" fill="${c}"/>
             <circle cx="${x}" cy="${y}" r="18" fill="url(#${P}shade)"/>
           </g>
-          <text x="${x}" y="${y + 5.5}" text-anchor="middle" font-size="15" pointer-events="none">${mood ? opts.moodEmoji(mood) : '✏️'}</text>
-          <text x="${x}" y="${y + 35}" text-anchor="middle" class="jm-num">${i + 1}</text>`;
+          <text x="${x}" y="${y + 5.5}" text-anchor="middle" font-size="15" pointer-events="none">${f ? f.emoji : '✏️'}</text>`;
+        // emotion bar: 5 segments, filled to how you felt that day
+        if (f) {
+          for (let s = 0; s < 5; s++) {
+            const on = s < f.level;
+            svg += `<rect x="${f1(x - 15.5 + s * 6.5)}" y="${y + 25}" width="5" height="3.6" rx="1"
+              fill="${on ? f.color : 'rgba(201,209,255,.2)'}"${on ? `` : ''}/>`;
+          }
+        }
+        svg += `<text x="${x}" y="${y + (f ? 42 : 35)}" text-anchor="middle" class="jm-num">${i + 1}</text>`;
         if (list.length > 1) {
           svg += `<ellipse cx="${x}" cy="${y}" rx="27" ry="7" fill="none" stroke="${c}" stroke-width="1.4" opacity=".75" transform="rotate(-18 ${x} ${y})"/>
             <circle cx="${x + 17}" cy="${y - 16}" r="8" class="jm-count"/>

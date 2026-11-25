@@ -413,7 +413,19 @@ svg:not(.jm):not(.ml) { width: 22px; height: 22px; fill: none; stroke: currentCo
   background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 10px 8px 14px;
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
-.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-head {
+  display: flex; align-items: center; justify-content: space-between; margin: -10px -8px 8px; padding: 6px 8px;
+  /* stays pinned under the top bar while you scroll the map, so you always see the month */
+  position: sticky; top: calc(env(safe-area-inset-top) + 64px); z-index: 4;
+  background: var(--panel-solid); border-radius: 18px 18px 12px 12px; border-bottom: 1px solid var(--line);
+}
+.feel-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 10px; padding: 10px 14px;
+  border-radius: 14px; background: var(--panel); border: 1px solid var(--line);
+}
+.feel-row b { font: 700 .95rem var(--display); }
+.feel-bar { display: inline-flex; gap: 4px; }
+.feel-bar i { width: 18px; height: 8px; border-radius: 2px; background: rgba(201, 209, 255, .18); }
 .cal-month {
   border: 0; background: transparent; cursor: pointer; padding: 6px 10px; border-radius: 10px;
   font: 700 1.2rem var(--display); letter-spacing: .02em;
