@@ -42,7 +42,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .muted { color: var(--muted); }
 .small { font-size: .875rem; }
 .center { text-align: center; }
-svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 .view { max-width: 720px; margin: 0 auto; padding: 0 16px 120px; }
 
@@ -253,7 +253,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 }
 .xpbar.big { height: 14px; border-radius: 7px; margin: 14px auto 6px; max-width: 320px; }
 
-/* ---------- calendar ---------- */
+/* ---------- journey map ---------- */
 .cal {
   background: var(--surface); border-radius: 20px; padding: 12px 10px 14px; box-shadow: var(--shadow);
   background-image: linear-gradient(160deg, color-mix(in srgb, #ffe08a 22%, transparent), transparent 40%),
@@ -264,23 +264,6 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
   border: 0; background: transparent; cursor: pointer;
   font-family: var(--serif); font-size: 1.25rem; font-weight: 600; padding: 6px 10px; border-radius: 10px;
 }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-.cal-weekdays span { text-align: center; font-size: .72rem; font-weight: 600; color: var(--muted); padding: 4px 0; }
-.cal-day {
-  position: relative; aspect-ratio: 1; border: 0; border-radius: 12px; cursor: pointer; padding: 0;
-  background: var(--surface-2); display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-size: .92rem; font-variant-numeric: tabular-nums; transition: transform .12s;
-}
-.cal-day:active { transform: scale(.92); }
-.cal-day.has { background: var(--c); color: #2b2723; font-weight: 700; box-shadow: 0 3px 8px color-mix(in srgb, var(--c) 45%, transparent); }
-.cal-day i { font-style: normal; font-size: .8rem; line-height: 1; }
-.cal-day b {
-  position: absolute; top: 2px; right: 3px; font-size: .6rem; min-width: 14px; height: 14px; border-radius: 7px;
-  background: rgba(255,255,255,.8); color: #2b2723; display: grid; place-items: center;
-}
-.cal-day.today { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
-.cal-day.sel { outline: 3px solid var(--text); outline-offset: 1px; }
-.cal-day.future { opacity: .45; }
 .cal-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin-top: 12px; font-size: .75rem; color: var(--muted); }
 .cal-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .cal-legend i { width: 10px; height: 10px; border-radius: 3px; }
@@ -342,3 +325,38 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 50; }
 @keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .lu-burst { animation: none; } }
+
+.jm-wrap { margin: 0 -4px; touch-action: pan-y; }
+.jm { display: block; width: 100%; height: auto; user-select: none; -webkit-user-select: none; }
+.jm text { font-family: var(--sans); }
+.jm-deco { pointer-events: none; }
+.jm-trail { fill: none; stroke: #f3dcae; stroke-width: 16; stroke-linecap: round; }
+.jm-trail-dash { fill: none; stroke: #fff; stroke-width: 2.5; stroke-dasharray: 2 9; stroke-linecap: round; opacity: .9; }
+.jm-trail.future { stroke: #fff; opacity: .55; stroke-width: 12; stroke-dasharray: 1 16; }
+.jm-gold { fill: none; stroke: #ffc93c; stroke-width: 8; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(255, 190, 40, .7)); }
+.jm-stop { cursor: pointer; outline: none; }
+.jm-stop:focus-visible .jm-sel, .jm-stop:focus-visible circle:first-child { stroke: var(--accent); stroke-width: 3; }
+.jm-done { stroke: #fff; stroke-width: 4; transition: transform .15s; transform-box: fill-box; transform-origin: center; }
+.jm-stop:active .jm-done { transform: scale(.9); }
+.jm-empty { fill: rgba(255, 255, 255, .85); stroke: #dcc7a3; stroke-width: 2; }
+.jm-empty.future { fill: rgba(255, 255, 255, .35); stroke: #fff; stroke-dasharray: 3 3; }
+.jm-num { font-size: 11px; font-weight: 700; fill: #5c4a32; }
+.jm-num.small { font-size: 10.5px; }
+.jm-stop.future .jm-num { fill: #9b8b74; font-weight: 500; }
+.jm-sel { fill: none; stroke: #2b2723; stroke-width: 3; stroke-dasharray: 5 4; }
+.jm-pulse { fill: none; stroke: var(--accent); stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: jm-pulse 1.8s ease-out infinite; }
+@keyframes jm-pulse { from { transform: scale(.85); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+.jm-count { fill: #2b2723; stroke: #fff; stroke-width: 2; }
+.jm-count-t { font-size: 10px; font-weight: 700; fill: #fff; }
+.jm-sign rect { fill: #a0612f; stroke: #7c4a22; stroke-width: 1.5; }
+.jm-sign text { fill: #fff6e6; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.jm-goal-label { font-size: 11px; font-weight: 700; fill: #8a5a2b; }
+.jm-lv { fill: #3a2a12; }
+.jm-lv-t { font-size: 9.5px; font-weight: 800; fill: #ffe08a; }
+.jm-bob { animation: jm-bob 2.4s ease-in-out infinite; }
+@keyframes jm-bob { 50% { transform: translateY(-4px); } }
+.lg-gold { background: #ffc93c; height: 4px !important; width: 16px !important; border-radius: 2px !important; }
+.lg-empty { background: #fff; border: 1.5px solid #dcc7a3; border-radius: 50% !important; }
+@media (prefers-reduced-motion: reduce) { .jm-bob, .jm-pulse { animation: none; } }
+:root[data-theme="dark"] .jm-ground { filter: brightness(.78) saturate(.9); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .jm-ground { filter: brightness(.78) saturate(.9); } }

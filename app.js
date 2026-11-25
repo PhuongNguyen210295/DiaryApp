@@ -128,10 +128,12 @@ async function route() {
     openEditor(entry);
   } else if (hash.startsWith('#/new')) {
     openEditor(null, hash.slice(6) || null);
-  } else if (hash === '#/calendar') {
+  } else if (hash === '#/map' || hash === '#/calendar') {
     await leaveEditor();
     renderCalendar();
     show('calendar');
+    const you = document.querySelector('.jm-avatar');
+    if (you) you.scrollIntoView({ block: 'center' });
   } else if (hash === '#/progress') {
     await leaveEditor();
     renderProgress();
@@ -256,7 +258,7 @@ function render() {
 
 $('#btn-new').addEventListener('click', () => { location.hash = '#/new'; });
 $('#btn-settings').addEventListener('click', () => { location.hash = '#/settings'; });
-$('#btn-calendar').addEventListener('click', () => { location.hash = '#/calendar'; });
+$('#btn-calendar').addEventListener('click', () => { location.hash = '#/map'; });
 document.querySelectorAll('.js-home').forEach(b => b.addEventListener('click', () => { location.hash = '#/'; }));
 $('#btn-settings-back').addEventListener('click', () => history.length > 1 ? history.back() : (location.hash = '#/'));
 $('#btn-search').addEventListener('click', () => {
@@ -409,7 +411,7 @@ function confetti() {
   })(start);
 }
 
-/* ---------- calendar ---------- */
+/* ---------- journey map (month view) ---------- */
 const today = () => localStamp().slice(0, 10);
 let calMonth = today().slice(0, 7);     // "YYYY-MM"
 let calDay = today();
@@ -423,36 +425,22 @@ function shiftMonth(ym, delta) {
 function renderCalendar() {
   const [y, m] = calMonth.split('-').map(Number);
   const first = new Date(y, m - 1, 1);
-  const daysIn = new Date(y, m, 0).getDate();
-  const lead = (first.getDay() + 6) % 7;        // Monday-first
   const byDay = {};
   for (const e of entries) (byDay[dayKey(e.date)] ||= []).push(e);
   for (const k in byDay) byDay[k].sort((a, b) => b.date.localeCompare(a.date));
 
   $('#cal-month').textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-  const wd = [];
-  for (let i = 0; i < 7; i++) wd.push(new Date(2024, 0, 1 + i).toLocaleDateString(undefined, { weekday: 'narrow' }));
-  $('#cal-weekdays').innerHTML = wd.map(w => `<span>${esc(w)}</span>`).join('');
-
-  let html = '<span></span>'.repeat(lead);
-  const t = today();
-  for (let d = 1; d <= daysIn; d++) {
-    const key = `${calMonth}-${pad(d)}`;
-    const list = byDay[key] || [];
-    const cls = ['cal-day'];
-    if (list.length) cls.push('has');
-    if (key === t) cls.push('today');
-    if (key === calDay) cls.push('sel');
-    if (key > t) cls.push('future');
-    const style = list.length ? ` style="--c:${moodColor(list[0].mood)}"` : '';
-    const emoji = list.length && list[0].mood ? `<i>${moodById[list[0].mood].emoji}</i>` : '';
-    const more = list.length > 1 ? `<b>${list.length}</b>` : '';
-    html += `<button class="${cls.join(' ')}" data-day="${key}"${style} aria-label="${key}${list.length ? `, ${list.length} entr${list.length > 1 ? 'ies' : 'y'}` : ''}">
-      <span>${d}</span>${emoji}${more}</button>`;
-  }
-  $('#cal-grid').innerHTML = html;
+  $('#cal-map').innerHTML = JourneyMap.render({
+    month: calMonth, byDay, today: today(), selected: calDay,
+    level: Levels.levelInfo(Levels.totalXP(entries)),
+    moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️',
+    monthLabel: first.toLocaleDateString(undefined, { month: 'long' }),
+  });
   $('#cal-legend').innerHTML = MOODS.map(mo => `<span><i style="background:${mo.color}"></i>${mo.label}</span>`).join('') +
-    `<span><i style="background:${NO_MOOD_COLOR}"></i>No mood</span>`;
+    `<span><i style="background:${NO_MOOD_COLOR}"></i>No mood</span>` +
+    `<span><i class="lg-gold"></i>Streak trail</span><span><i class="lg-empty"></i>Missed day</span>`;
+
+  const t = today();
 
   // month summary
   const monthEntries = entries.filter(e => e.date.startsWith(calMonth));
@@ -476,16 +464,22 @@ function renderCalendar() {
 $('#cal-prev').addEventListener('click', () => { calMonth = shiftMonth(calMonth, -1); renderCalendar(); });
 $('#cal-next').addEventListener('click', () => { calMonth = shiftMonth(calMonth, 1); renderCalendar(); });
 $('#cal-month').addEventListener('click', () => { calMonth = today().slice(0, 7); calDay = today(); renderCalendar(); });
-$('#cal-grid').addEventListener('click', e => {
-  const b = e.target.closest('.cal-day');
-  if (!b) return;
-  calDay = b.dataset.day;
+function pickDay(stop) {
+  calDay = stop.dataset.day;
   renderCalendar();
-  $('#cal-day-title').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  $('#cal-day-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+$('#cal-map').addEventListener('click', e => {
+  const stop = e.target.closest('.jm-stop');
+  if (stop) pickDay(stop);
+});
+$('#cal-map').addEventListener('keydown', e => {
+  const stop = e.target.closest('.jm-stop');
+  if (stop && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pickDay(stop); }
 });
 let touchX = null;
-$('#cal-grid').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
-$('#cal-grid').addEventListener('touchend', e => {
+$('#cal-map').addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+$('#cal-map').addEventListener('touchend', e => {
   if (touchX === null) return;
   const dx = e.changedTouches[0].clientX - touchX;
   touchX = null;

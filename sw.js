@@ -1,7 +1,7 @@
 // Offline support: cache the app shell, serve it cache-first, refresh in the background.
-const CACHE = 'diary-v2';
+const CACHE = 'diary-v3';
 const ASSETS = [
-  './', 'index.html', 'styles.css', 'app.js', 'db.js', 'levels.js', 'manifest.webmanifest',
+  './', 'index.html', 'styles.css', 'app.js', 'db.js', 'levels.js', 'journeymap.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 
