@@ -3,7 +3,7 @@
 // Self-repair: if the page layout and this script come from different releases
 // (a stale saved copy), clear the saved copies and reload once.
 (function checkSameRelease() {
-  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'clock', 'milestones', 'lu-milestone'];
+  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'clock', 'milestones', 'lu-milestone', 'map-panel', 'mp-map', 'map-unpin'];
   if (required.every(id => document.getElementById(id))) {
     try { sessionStorage.removeItem('diary.repairing'); } catch { /* ignore */ }
     return;
@@ -151,7 +151,7 @@ async function route() {
     await leaveEditor();
     renderCalendar();
     show('calendar');
-    const you = document.querySelector('.jm-avatar');
+    const you = document.querySelector('#cal-map .jm-avatar');
     if (you) you.scrollIntoView({ block: 'center' });
   } else if (hash === '#/progress') {
     await leaveEditor();
@@ -298,6 +298,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { sh
 
 function render() {
   showToday();
+  applyMapMode();
   renderLevelCard();
   renderStats();
   renderMoodFilter();
@@ -495,12 +496,17 @@ function shiftMonth(ym, delta) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
 }
 
-function renderCalendar() {
-  const [y, m] = calMonth.split('-').map(Number);
-  const first = new Date(y, m - 1, 1);
+function entriesByDay() {
   const byDay = {};
   for (const e of entries) (byDay[dayKey(e.date)] ||= []).push(e);
   for (const k in byDay) byDay[k].sort((a, b) => b.date.localeCompare(a.date));
+  return byDay;
+}
+
+function renderCalendar() {
+  const [y, m] = calMonth.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  const byDay = entriesByDay();
 
   $('#cal-month').textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   $('#cal-map').innerHTML = JourneyMap.render({
@@ -508,6 +514,7 @@ function renderCalendar() {
     level: Levels.levelInfo(Levels.totalXP(entries)),
     moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️',
     monthLabel: first.toLocaleDateString(undefined, { month: 'long' }),
+    idPrefix: 'full-',
   });
   $('#cal-legend').innerHTML = MOODS.map(mo => `<span><i style="background:${mo.color}"></i>${mo.label}</span>`).join('') +
     `<span><i style="background:${NO_MOOD_COLOR}"></i>No mood</span>` +
@@ -557,6 +564,76 @@ $('#cal-map').addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - touchX;
   touchX = null;
   if (Math.abs(dx) > 50) { calMonth = shiftMonth(calMonth, dx < 0 ? 1 : -1); renderCalendar(); }
+});
+
+/* ---------- star map panel on the home screen ---------- */
+// 'panel': collapsible map on the home screen. 'button': an icon in the top bar instead.
+const mapMode = () => settings.get('mapMode', 'panel');
+
+function applyMapMode() {
+  const panel = mapMode() === 'panel';
+  $('#btn-calendar').hidden = panel;
+  $('#map-panel').hidden = !panel;
+  $('#map-unpin').style.visibility = panel ? 'hidden' : 'visible';
+  document.querySelectorAll('input[name=mapmode]').forEach(r => { r.checked = r.value === mapMode(); });
+  renderMapPanel();
+}
+
+function renderMapPanel() {
+  if (mapMode() !== 'panel') return;
+  const open = settings.get('mapOpen', true);
+  const now = new Date();
+  $('#mp-toggle').setAttribute('aria-expanded', String(open));
+  $('#mp-month').textContent = now.toLocaleDateString(undefined, { month: 'long' });
+  $('#mp-body').hidden = !open;
+  if (!open) { $('#mp-map').innerHTML = ''; return; }
+  $('#mp-map').innerHTML = JourneyMap.render({
+    month: today().slice(0, 7), byDay: entriesByDay(), today: today(), selected: null,
+    level: Levels.levelInfo(Levels.totalXP(entries)),
+    moodColor, moodEmoji: id => moodById[id]?.emoji || '✏️',
+    monthLabel: now.toLocaleDateString(undefined, { month: 'long' }),
+    idPrefix: 'mini-',
+  });
+  // centre today's stop in the panel once it's on screen
+  requestAnimationFrame(() => {
+    const box = $('#mp-map'), you = box.querySelector('.jm-avatar');
+    if (!you || !box.clientHeight) return;
+    const offset = you.getBoundingClientRect().top - box.getBoundingClientRect().top;
+    box.scrollTop += offset - box.clientHeight / 2 + 30;
+  });
+}
+
+$('#mp-toggle').addEventListener('click', () => {
+  settings.set('mapOpen', !settings.get('mapOpen', true));
+  renderMapPanel();
+});
+$('#mp-pin').addEventListener('click', () => {
+  settings.set('mapMode', 'button');
+  applyMapMode();
+  toast('Star map moved to the top bar');
+});
+$('#map-unpin').addEventListener('click', () => {
+  settings.set('mapMode', 'panel');
+  settings.set('mapOpen', true);
+  applyMapMode();
+  toast('Star map is back on the home screen');
+  location.hash = '#/';
+});
+document.querySelectorAll('input[name=mapmode]').forEach(r => r.addEventListener('change', () => {
+  settings.set('mapMode', r.value);
+  applyMapMode();
+}));
+// tapping a day in the panel opens it on the full map
+$('#mp-map').addEventListener('click', e => {
+  const stop = e.target.closest('.jm-stop');
+  if (!stop) return;
+  calDay = stop.dataset.day;
+  calMonth = calDay.slice(0, 7);
+  location.hash = '#/map';
+});
+$('#mp-map').addEventListener('keydown', e => {
+  const stop = e.target.closest('.jm-stop');
+  if (stop && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); stop.click(); }
 });
 
 /* ---------- progress ---------- */
@@ -685,6 +762,7 @@ function renderSettings() {
   $('#opt-autolock').closest('label').hidden = !hasPin;
   const theme = settings.get('theme', 'dark');
   document.querySelectorAll('input[name=theme]').forEach(r => { r.checked = r.value === theme; });
+  document.querySelectorAll('input[name=mapmode]').forEach(r => { r.checked = r.value === mapMode(); });
   const lb = settings.get('lastBackup');
   $('#last-backup').textContent = lb ? `Last backup: ${new Date(lb).toLocaleString()}` : 'No backup yet.';
 }

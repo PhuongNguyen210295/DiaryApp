@@ -269,6 +269,25 @@ svg:not(.jm) { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 .btn svg { width: 18px; height: 18px; }
 .invite-wide { display: flex; width: 100%; margin-top: 16px; color: var(--cyan); border-color: color-mix(in srgb, var(--cyan) 45%, transparent); }
 
+/* ---------- star map panel (home screen) ---------- */
+.map-panel {
+  margin-top: 8px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); overflow: hidden;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.mp-head { display: flex; align-items: center; padding-right: 4px; }
+.mp-toggle {
+  flex: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px;
+  background: transparent; border: 0; cursor: pointer; text-align: left; font: 700 1rem var(--display); letter-spacing: .02em;
+}
+.mp-toggle svg { width: 18px; height: 18px; color: var(--cyan); transition: transform .2s; }
+.mp-toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
+.mp-month { font: 500 .85rem var(--display); color: var(--muted); }
+.mp-map { max-height: 250px; overflow-y: auto; margin: 0 8px; border-radius: 12px; scrollbar-width: none; overscroll-behavior: contain; }
+.mp-map::-webkit-scrollbar { display: none; }
+.mp-open { display: block; text-align: center; padding: 10px; color: var(--cyan); font-weight: 600; font-size: .9rem; text-decoration: none; }
+.seg-label { margin: 14px 0 6px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .mp-toggle svg { transition: none; } }
+
 /* ---------- HUD panel: angled corners + hologram edge (level card, progress hero) ---------- */
 .level-card, .hero {
   position: relative; isolation: isolate;

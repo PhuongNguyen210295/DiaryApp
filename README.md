@@ -13,6 +13,7 @@ A private, offline-first diary styled as a starship captain's log, you install o
 - Optional passcode lock that re-locks when you leave the app
 - Light, dark or automatic theme
 - Works fully offline once loaded
+- **Star map panel** on the home screen: tap its title to open or hide it, or pin it to the top bar as a button instead (switch back from the map page or Settings → Appearance)
 - **Invite friends** from the home screen (share icon at the top) or the progress page: shares the app link through the phone's share menu (or copies it). Only the link is shared, never your entries
 - Export and import JSON backups (on phones, Export opens the share sheet, so you can save to Files, Google Drive or email it to yourself)
 

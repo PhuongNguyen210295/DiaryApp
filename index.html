@@ -64,6 +64,20 @@
         <input id="search-input" type="search" placeholder="Search entries, #tags, moods…" aria-label="Search entries">
       </div>
 
+      <section id="map-panel" class="map-panel" aria-label="Star map" hidden>
+        <div class="mp-head">
+          <button id="mp-toggle" class="mp-toggle" type="button" aria-expanded="true" aria-controls="mp-body">
+            <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>Star map</span><span id="mp-month" class="mp-month"></span>
+          </button>
+          <button id="mp-pin" class="icon-btn" type="button" aria-label="Move star map to the top bar" title="Move to the top bar">
+            <svg viewBox="0 0 24 24"><path d="M12 17v5M8.5 3h7l-1 6.5 3.5 3.5v2H6v-2l3.5-3.5z"/></svg>
+          </button>
+        </div>
+        <div id="mp-body" class="mp-body">
+          <div id="mp-map" class="mp-map"></div>
+          <a class="mp-open" href="#/map">Open full map</a>
+        </div>
+      </section>
       <a id="level-card" class="level-card" href="#/progress" aria-label="Your level and badges"></a>
       <div id="stats" class="stats"></div>
       <div id="mood-filter" class="chips" role="group" aria-label="Filter by mood"></div>
@@ -111,7 +125,9 @@
           <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
         </button>
         <h1 class="title">Star map</h1>
-        <span class="icon-btn-spacer"></span>
+        <button id="map-unpin" class="icon-btn" type="button" aria-label="Show star map on the home screen" title="Show on the home screen">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+        </button>
       </header>
       <div class="cal">
         <div class="cal-head">
@@ -179,6 +195,11 @@
             <label><input type="radio" name="theme" value="auto"><span>Auto</span></label>
             <label><input type="radio" name="theme" value="light"><span>Light</span></label>
             <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+          </div>
+          <p class="small seg-label">Star map</p>
+          <div class="seg" role="radiogroup" aria-label="Where the star map goes">
+            <label><input type="radio" name="mapmode" value="panel"><span>Home screen panel</span></label>
+            <label><input type="radio" name="mapmode" value="button"><span>Top bar button</span></label>
           </div>
         </div>
 

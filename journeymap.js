@@ -40,6 +40,8 @@ const JourneyMap = (() => {
     const H = TOP + (rows - 1) * ROW_H + BOTTOM;
     const nebula = NEBULAE[seasonOf(month)];
     const rand = rng(year * 100 + month);
+    // unique ids, so two maps on the page (home panel + full map) don't share gradients
+    const P = opts.idPrefix || 'jm-';
 
     const pos = i => {
       const r = Math.floor(i / PER_ROW), c = i % PER_ROW;
@@ -56,12 +58,12 @@ const JourneyMap = (() => {
 
     let svg = `<svg class="jm" viewBox="0 0 ${W} ${H}" role="group" aria-label="Star map for ${xmlEsc(opts.monthLabel)}">
       <defs>
-        <radialGradient id="jm-shade" cx="35%" cy="30%" r="75%">
+        <radialGradient id="${P}shade" cx="35%" cy="30%" r="75%">
           <stop offset="0" stop-color="#fff" stop-opacity=".55"/>
           <stop offset=".45" stop-color="#fff" stop-opacity="0"/>
           <stop offset="1" stop-color="#050820" stop-opacity=".55"/>
         </radialGradient>
-        <filter id="jm-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="28"/></filter>
+        <filter id="${P}blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="28"/></filter>
       </defs>
       <rect width="${W}" height="${H}" fill="#070b26"/>`;
 
@@ -69,7 +71,7 @@ const JourneyMap = (() => {
     for (let i = 0; i < 5; i++) {
       const cx = rand() * W, cy = 40 + rand() * (H - 80);
       svg += `<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(90 + rand() * 70)}" ry="${f(55 + rand() * 50)}"
-        fill="${nebula[i % nebula.length]}" opacity="${f(.18 + rand() * .16)}" filter="url(#jm-blur)"/>`;
+        fill="${nebula[i % nebula.length]}" opacity="${f(.18 + rand() * .16)}" filter="url(#${P}blur)"/>`;
     }
     // background stars
     for (let i = 0; i < 110; i++) {
@@ -119,7 +121,7 @@ const JourneyMap = (() => {
         svg += `<circle cx="${x}" cy="${y}" r="25" fill="${c}" opacity=".16"/>
           <g class="jm-planet">
             <circle cx="${x}" cy="${y}" r="18" fill="${c}"/>
-            <circle cx="${x}" cy="${y}" r="18" fill="url(#jm-shade)"/>
+            <circle cx="${x}" cy="${y}" r="18" fill="url(#${P}shade)"/>
           </g>
           <text x="${x}" y="${y + 5.5}" text-anchor="middle" font-size="15" pointer-events="none">${mood ? opts.moodEmoji(mood) : '✏️'}</text>
           <text x="${x}" y="${y + 35}" text-anchor="middle" class="jm-num">${i + 1}</text>`;
