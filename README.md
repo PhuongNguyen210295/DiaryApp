@@ -45,4 +45,4 @@ Then open http://localhost:8000.
 
 ## Releasing updates
 
-The service worker caches the app for offline use. When you change any file, bump `CACHE` in `sw.js` (e.g. `diary-v2`) so phones pick up the new version. It applies the next time the app is opened.
+The service worker loads files from the network first (so every file comes from the same release) and falls back to its saved copy only when offline. When you add a new file, add it to `ASSETS` in `sw.js` and to the copy step in `.github/workflows/pages.yml`, and bump `CACHE` in `sw.js` (e.g. `diary-v5`).

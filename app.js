@@ -1,5 +1,24 @@
 'use strict';
 
+// Self-repair: if the page layout and this script come from different releases
+// (a stale saved copy), clear the saved copies and reload once.
+(function checkSameRelease() {
+  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress'];
+  if (required.every(id => document.getElementById(id))) {
+    try { sessionStorage.removeItem('diary.repairing'); } catch { /* ignore */ }
+    return;
+  }
+  let tried = false;
+  try { tried = sessionStorage.getItem('diary.repairing') === '1'; sessionStorage.setItem('diary.repairing', '1'); } catch { /* ignore */ }
+  if (!tried) {
+    Promise.resolve(window.caches ? caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))) : null)
+      .finally(() => location.reload());
+  } else {
+    document.body.innerHTML = '<p style="padding:24px;font:16px system-ui">The app was just updated. Please close it and open it again.</p>';
+  }
+  throw new Error('Stale page; repairing');
+})();
+
 /* ---------- constants & helpers ---------- */
 const MOODS = [
   { id: 'great', emoji: '😄', label: 'Great', color: '#ffc93c' },
