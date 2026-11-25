@@ -3,7 +3,7 @@
 // Self-repair: if the page layout and this script come from different releases
 // (a stale saved copy), clear the saved copies and reload once.
 (function checkSameRelease() {
-  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'clock', 'milestones', 'lu-milestone', 'map-panel', 'mp-map', 'map-unpin', 'cal-collapse', 'cal-strip', 'checkin'];
+  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate', 'today-date', 'clock', 'milestones', 'lu-milestone', 'map-panel', 'mp-map', 'map-unpin', 'cal-collapse', 'checkin'];
   if (required.every(id => document.getElementById(id))) {
     try { sessionStorage.removeItem('diary.repairing'); } catch { /* ignore */ }
     return;
@@ -151,7 +151,7 @@ async function route() {
     await leaveEditor();
     renderCalendar();
     show('calendar');
-    const you = settings.get('fullMapOpen', true) && document.querySelector('#cal-map .jm-avatar');
+    const you = document.querySelector('#cal-map .jm-avatar');
     if (you) you.scrollIntoView({ block: 'center' });
   } else if (hash === '#/progress') {
     await leaveEditor();
@@ -525,7 +525,6 @@ function renderCalendar() {
     monthLabel: first.toLocaleDateString(undefined, { month: 'long' }),
     idPrefix: 'full-',
   });
-  renderMapCollapse(byDay);
   $('#cal-legend').innerHTML = MOODS.map(mo => `<span><i style="background:${mo.color}"></i>${mo.label}</span>`).join('') +
     `<span><i style="background:${NO_MOOD_COLOR}"></i>No mood</span>` +
     `<span><i class="lg-gold"></i>Streak lane</span><span><i class="lg-empty"></i>Missed day</span>`;
@@ -554,47 +553,8 @@ function renderCalendar() {
 $('#cal-prev').addEventListener('click', () => { calMonth = shiftMonth(calMonth, -1); renderCalendar(); });
 $('#cal-next').addEventListener('click', () => { calMonth = shiftMonth(calMonth, 1); renderCalendar(); });
 $('#cal-month').addEventListener('click', () => { calMonth = today().slice(0, 7); calDay = today(); renderCalendar(); });
-// Full map page: hide the big map and show a compact strip of days instead.
-function renderMapCollapse(byDay) {
-  const open = settings.get('fullMapOpen', true);
-  const btn = $('#cal-collapse');
-  btn.setAttribute('aria-expanded', String(open));
-  btn.querySelector('span').textContent = open ? 'Hide map' : 'Show map';
-  $('#cal-map-wrap').hidden = !open;
-  const strip = $('#cal-strip');
-  strip.hidden = open;
-  if (open) { strip.innerHTML = ''; return; }
-  const [y, m] = calMonth.split('-').map(Number);
-  const daysIn = new Date(y, m, 0).getDate();
-  const t = today();
-  let html = '';
-  for (let d = 1; d <= daysIn; d++) {
-    const key = `${calMonth}-${pad(d)}`;
-    const list = byDay[key] || [];
-    const date = new Date(y, m - 1, d);
-    const cls = ['cs-day', list.length ? 'has' : '', key === t ? 'today' : '', key === calDay ? 'sel' : '', key > t ? 'future' : ''].filter(Boolean).join(' ');
-    const style = list.length ? ` style="--c:${moodColor(list[0].mood)}"` : '';
-    const label = date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) + (list.length ? `, ${list.length} entr${list.length > 1 ? 'ies' : 'y'}` : '');
-    html += `<button type="button" class="${cls}" data-day="${key}"${style} aria-label="${esc(label)}" aria-pressed="${key === calDay}">
-      <small>${esc(date.toLocaleDateString(undefined, { weekday: 'narrow' }))}</small><b>${d}</b><i></i></button>`;
-  }
-  strip.innerHTML = html;
-  // keep the selected day in view inside the strip (without scrolling the page)
-  requestAnimationFrame(() => {
-    const sel = strip.querySelector('.sel') || strip.querySelector('.today');
-    if (sel) strip.scrollLeft = sel.offsetLeft - strip.clientWidth / 2 + sel.offsetWidth / 2;
-  });
-}
-$('#cal-collapse').addEventListener('click', () => {
-  settings.set('fullMapOpen', !settings.get('fullMapOpen', true));
-  renderCalendar();
-});
-$('#cal-strip').addEventListener('click', e => {
-  const day = e.target.closest('.cs-day');
-  if (!day) return;
-  calDay = day.dataset.day;
-  renderCalendar();
-});
+// Full map page: "Hide map" closes the map and goes back to the home screen.
+$('#cal-collapse').addEventListener('click', () => { location.hash = '#/'; });
 
 function pickDay(stop) {
   calDay = stop.dataset.day;
@@ -622,6 +582,7 @@ $('#cal-map').addEventListener('touchend', e => {
 // 'panel': collapsible map on the home screen. 'button': an icon in the top bar instead.
 // The star map lives in the top bar by default (it was briefly a home-screen panel by default).
 if (!settings.get('mapModeV2', false)) { settings.set('mapMode', 'button'); settings.set('mapModeV2', true); }
+settings.remove('fullMapOpen');   // retired: the map page always shows the map now
 const mapMode = () => settings.get('mapMode', 'button');
 
 // Top-bar planet: coloured by today's mood (pale until you write), with a count of days written this month.
