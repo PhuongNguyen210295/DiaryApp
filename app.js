@@ -3,7 +3,7 @@
 // Self-repair: if the page layout and this script come from different releases
 // (a stale saved copy), clear the saved copies and reload once.
 (function checkSameRelease() {
-  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress'];
+  const required = ['app', 'cal-map', 'level-card', 'levelup', 'editor', 'view-progress', 'stardate'];
   if (required.every(id => document.getElementById(id))) {
     try { sessionStorage.removeItem('diary.repairing'); } catch { /* ignore */ }
     return;
@@ -21,14 +21,14 @@
 
 /* ---------- constants & helpers ---------- */
 const MOODS = [
-  { id: 'great', emoji: '😄', label: 'Great', color: '#ffc93c' },
-  { id: 'good',  emoji: '🙂', label: 'Good',  color: '#6fdc8c' },
-  { id: 'okay',  emoji: '😐', label: 'Okay',  color: '#5ec8f2' },
-  { id: 'low',   emoji: '😔', label: 'Low',   color: '#b79cf0' },
-  { id: 'awful', emoji: '😢', label: 'Awful', color: '#ff8fab' },
+  { id: 'great', emoji: '😄', label: 'Great', color: '#ffd84d' },
+  { id: 'good',  emoji: '🙂', label: 'Good',  color: '#5dffa8' },
+  { id: 'okay',  emoji: '😐', label: 'Okay',  color: '#5ec8ff' },
+  { id: 'low',   emoji: '😔', label: 'Low',   color: '#b28cff' },
+  { id: 'awful', emoji: '😢', label: 'Awful', color: '#ff6b9a' },
 ];
 const moodById = Object.fromEntries(MOODS.map(m => [m.id, m]));
-const NO_MOOD_COLOR = '#ffb38a';
+const NO_MOOD_COLOR = '#8fa3ff';
 const moodColor = id => (id && moodById[id] ? moodById[id].color : NO_MOOD_COLOR);
 
 const $ = sel => document.querySelector(sel);
@@ -220,8 +220,9 @@ function renderLevelCard() {
   $('#level-card').innerHTML = `
     <div class="lc-badge">${info.icon}<span>${info.level}</span></div>
     <div class="lc-main">
-      <div class="lc-top"><b>Level ${info.level} · ${esc(info.title)}</b><span>${info.into}/${info.need} XP</span></div>
+      <b class="lc-title">${esc(info.title)}</b>
       <div class="xpbar"><i style="width:${Math.round(info.pct * 100)}%"></i></div>
+      <span class="lc-xp">${info.into} / ${info.need} XP to level ${info.level + 1}</span>
     </div>
     <svg class="lc-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>`;
 }
@@ -249,15 +250,23 @@ function entryCard(e) {
       </a>`;
 }
 
+// Stardate: year, then day of the year (e.g. 2026.329)
+function stardate(d = new Date()) {
+  const start = new Date(d.getFullYear(), 0, 0);
+  const day = Math.floor((d - start + (start.getTimezoneOffset() - d.getTimezoneOffset()) * 60000) / 864e5);
+  return `${d.getFullYear()}.${String(day).padStart(3, '0')}`;
+}
+
 function render() {
+  $('#stardate').textContent = `Stardate ${stardate()}`;
   renderLevelCard();
   renderStats();
   renderMoodFilter();
   const list = filtered();
   const el = $('#entries');
   if (!entries.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-art">📖</div>
-      <h2>Your diary is empty</h2><p class="muted">Tap <b>+</b> to write your first entry.</p></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-art">🪐</div>
+      <h2>Your log is empty</h2><p class="muted">Tap <b>+</b> to write your first entry.</p></div>`;
     return;
   }
   if (!list.length) {
@@ -457,7 +466,7 @@ function renderCalendar() {
   });
   $('#cal-legend').innerHTML = MOODS.map(mo => `<span><i style="background:${mo.color}"></i>${mo.label}</span>`).join('') +
     `<span><i style="background:${NO_MOOD_COLOR}"></i>No mood</span>` +
-    `<span><i class="lg-gold"></i>Streak trail</span><span><i class="lg-empty"></i>Missed day</span>`;
+    `<span><i class="lg-gold"></i>Streak lane</span><span><i class="lg-empty"></i>Missed day</span>`;
 
   const t = today();
 
@@ -608,7 +617,7 @@ $('#btn-delete').addEventListener('click', async () => {
 
 /* ---------- settings ---------- */
 function applyTheme() {
-  const t = settings.get('theme', 'auto');
+  const t = settings.get('theme', 'dark');
   if (t === 'auto') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.setAttribute('data-theme', t);
 }
@@ -620,7 +629,7 @@ function renderSettings() {
   $('#btn-remove-pin').hidden = !hasPin;
   $('#opt-autolock').checked = settings.get('autolock', true);
   $('#opt-autolock').closest('label').hidden = !hasPin;
-  const theme = settings.get('theme', 'auto');
+  const theme = settings.get('theme', 'dark');
   document.querySelectorAll('input[name=theme]').forEach(r => { r.checked = r.value === theme; });
   const lb = settings.get('lastBackup');
   $('#last-backup').textContent = lb ? `Last backup: ${new Date(lb).toLocaleString()}` : 'No backup yet.';

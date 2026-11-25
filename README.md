@@ -1,6 +1,6 @@
 # Diary
 
-A private, offline-first diary you install on your phone's home screen. It's a Progressive Web App (PWA): no app store, no account, no server. Your entries stay on your device.
+A private, offline-first diary styled as a starship captain's log, you install on your phone's home screen. It's a Progressive Web App (PWA): no app store, no account, no server. Your entries stay on your device.
 
 ## Features
 
@@ -8,7 +8,7 @@ A private, offline-first diary you install on your phone's home screen. It's a P
 - `#tags` written anywhere in an entry are picked up automatically; tap a tag to filter
 - Search across all entries, filter by mood
 - Entry count, monthly count and writing streak
-- **Journey map:** each month is a little world with a winding trail. Every day is a stop coloured by your mood, a golden trail marks your streaks, the scenery changes with the season, and your level character stands on today. Tap a stop to read that day, or write for a day you missed
+- **Star map:** each month is a route through space. Days you wrote are planets in your mood's colour, missed days are faint stars, a glowing lane marks your streaks, the nebula colour changes with the season, and your level badge hovers over today. Tap a stop to read that day, or write for a day you missed
 - **Levels and badges:** earn XP every time you write, level up through titles from *Blank Page* to *Legendary Author*, and unlock 14 badges
 - Optional passcode lock that re-locks when you leave the app
 - Light, dark or automatic theme
@@ -46,3 +46,7 @@ Then open http://localhost:8000.
 ## Releasing updates
 
 The service worker loads files from the network first (so every file comes from the same release) and falls back to its saved copy only when offline. When you add a new file, add it to `ASSETS` in `sw.js` and to the copy step in `.github/workflows/pages.yml`, and bump `CACHE` in `sw.js` (e.g. `diary-v5`).
+
+## Fonts
+
+Chakra Petch and Be Vietnam Pro (SIL Open Font License) are self-hosted in `fonts/` so they work offline and cover Vietnamese.

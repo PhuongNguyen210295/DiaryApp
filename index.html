@@ -5,22 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Diary</title>
   <meta name="description" content="A private diary that lives on your phone.">
-  <meta name="theme-color" content="#f6f1e9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1b1a18" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#0c1236">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Diary">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preload" href="fonts/chakra-petch-700-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <!-- Lock screen -->
   <section id="lock" class="lock" hidden>
     <div class="lock-inner">
-      <div class="lock-logo" aria-hidden="true">📔</div>
+      <div class="lock-logo" aria-hidden="true"><img src="icons/icon.svg" alt=""></div>
       <h1>Diary</h1>
       <p id="lock-msg" class="muted">Enter your passcode</p>
       <form id="lock-form" autocomplete="off">
@@ -35,9 +36,12 @@
     <!-- List view -->
     <section id="view-list" class="view">
       <header class="topbar">
-        <h1 class="title">Diary</h1>
+        <div class="title-block">
+          <h1 class="title">Diary</h1>
+          <span id="stardate" class="stardate"></span>
+        </div>
         <div class="topbar-actions">
-          <button id="btn-calendar" class="icon-btn" aria-label="Journey map">
+          <button id="btn-calendar" class="icon-btn" aria-label="Star map">
             <svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>
           </button>
           <button id="btn-search" class="icon-btn" aria-label="Search">
@@ -99,7 +103,7 @@
         <button class="icon-btn js-home" aria-label="Back">
           <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
         </button>
-        <h1 class="title">Journey</h1>
+        <h1 class="title">Star map</h1>
         <span class="icon-btn-spacer"></span>
       </header>
       <div class="cal">

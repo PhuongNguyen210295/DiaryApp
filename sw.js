@@ -1,10 +1,23 @@
 // Offline support.
 // Online: always load fresh files from the network (so every file comes from the same release),
 // and keep a copy. Offline: fall back to the saved copy.
-const CACHE = 'diary-v4';
+const CACHE = 'diary-v5';
 const ASSETS = [
   './', 'index.html', 'styles.css', 'app.js', 'db.js', 'levels.js', 'journeymap.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+  'fonts/fonts.css',
+  'fonts/be-vietnam-pro-400-vietnamese.woff2',
+  'fonts/be-vietnam-pro-400-latin-ext.woff2',
+  'fonts/be-vietnam-pro-400-latin.woff2',
+  'fonts/be-vietnam-pro-600-vietnamese.woff2',
+  'fonts/be-vietnam-pro-600-latin-ext.woff2',
+  'fonts/be-vietnam-pro-600-latin.woff2',
+  'fonts/chakra-petch-500-vietnamese.woff2',
+  'fonts/chakra-petch-500-latin-ext.woff2',
+  'fonts/chakra-petch-500-latin.woff2',
+  'fonts/chakra-petch-700-vietnamese.woff2',
+  'fonts/chakra-petch-700-latin-ext.woff2',
+  'fonts/chakra-petch-700-latin.woff2',
 ];
 
 self.addEventListener('install', e => {
