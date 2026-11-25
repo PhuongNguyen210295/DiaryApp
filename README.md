@@ -20,7 +20,7 @@ A private, offline-first diary styled as a starship captain's log, you install o
 1. **Host it.** This repo has a GitHub Actions workflow that publishes to GitHub Pages:
    - In the repo on GitHub, go to **Settings → Pages** and set **Source** to **GitHub Actions**.
    - Merge into `main` (or run the *Deploy to GitHub Pages* workflow by hand from the **Actions** tab).
-   - The site will be at `https://<your-username>.github.io/<repo-name>/`.
+   - The site will be at `[https://<your-username>.github.io/<repo-name>/](https://phuongnguyen210295.github.io/DiaryApp/#/)`.
 2. **Install it.**
    - **iPhone:** open the link in **Safari** → Share → **Add to Home Screen**.
    - **Android:** open the link in **Chrome** → ⋮ menu → **Install app**.
